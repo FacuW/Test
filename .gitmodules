@@ -1,0 +1,12 @@
+[submodule "cJSON"]
+	path = cJSON
+	url = https://github.com/DaveGamble/cJSON.git
+[submodule "external/Unity"]
+	path = external/Unity
+	url = https://github.com/ThrowTheSwitch/Unity.git
+[submodule "build/_deps/cjson-src"]
+	path = build/_deps/cjson-src
+	url = https://github.com/DaveGamble/cJSON.git
+[submodule "build/_deps/unity-src"]
+	path = build/_deps/unity-src
+	url = https://github.com/ThrowTheSwitch/Unity.git

@@ -1,0 +1,1 @@
+. "/home/facu/SO1/Sistemas-Operativos-1/build/Release/generators/deactivate_conanbuildenv-release-x86_64.sh"

@@ -1,0 +1,34 @@
+name: "Build"
+description: "Compiles the project"
+
+runs: 
+  using: "composite"
+  steps:
+    - name: "Install system dependencies"
+      shell: bash
+      run: sudo apt-get install -y libmicrohttpd-dev
+    
+    - name: "Clone prometheus client"
+      shell: bash
+      run: |
+        git clone https://github.com/digitalocean/prometheus-client-c.git
+        cd prometheus-client-c
+        rm -rf promhttp
+    
+    - name: "Building and Installing prometheus"
+      shell: bash
+      run: |
+        cd prometheus-client-c/prom
+        mkdir -p build
+        cd build
+        cmake ..
+        make
+        sudo make install
+    
+    - name: "Building the main project"
+      shell: bash
+      run: |
+        mkdir -p build
+        cd build
+        cmake ..
+        make
