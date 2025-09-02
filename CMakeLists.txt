@@ -28,8 +28,8 @@ target_link_libraries(${PROJECT_NAME} PRIVATE ${CJSON_LIB})
 # -----------------------------
 # Ejecutable de tests con Unity
 # -----------------------------
-add_executable(tests tests/test_main.c external/Unity/src/unity.c)
-target_include_directories(tests PRIVATE include external/Unity/src /usr/local/include)
+add_executable(tests tests/test_main.c build/_deps/unity-src/src/unity.c)
+target_include_directories(tests PRIVATE include  build/_deps/unity-src/src /usr/local/include)
 target_link_libraries(tests PRIVATE ${CJSON_LIB})
 
 # -----------------------------
