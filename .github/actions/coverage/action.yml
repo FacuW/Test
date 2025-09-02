@@ -1,68 +1,59 @@
 name: "Verificación de Cobertura"
+description: "Ejecuta tests y verifica cobertura"
 
-on:
-  pull_request:
-    branches:
-      - main
+runs:
+  using: "composite"
+  steps:
+    - name: Instalar dependencias
+      shell: bash
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y cmake gcovr lcov bc graphviz
 
-jobs:
-  coverage:
-    runs-on: ubuntu-latest
+    - name: Configurar CMake con flags de cobertura
+      shell: bash
+      run: |
+        mkdir -p build
+        cd build
+        cmake .. \
+          -DCMAKE_BUILD_TYPE=Debug \
+          -DCMAKE_C_FLAGS="--coverage" \
+          -DCMAKE_CXX_FLAGS="--coverage"
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          submodules: recursive
+    - name: Compilar proyecto
+      shell: bash
+      run: cmake --build build -j$(nproc)
 
-      - name: Instalar dependencias
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y cmake gcovr lcov bc graphviz
+    - name: Ejecutar tests
+      shell: bash
+      run: ctest --test-dir build --output-on-failure
 
-      - name: Configurar CMake con flags de cobertura
-        run: |
-          mkdir -p build
-          cd build
-          cmake .. \
-            -DCMAKE_BUILD_TYPE=Debug \
-            -DCMAKE_C_FLAGS="--coverage" \
-            -DCMAKE_CXX_FLAGS="--coverage"
+    - name: Generar reporte de cobertura
+      shell: bash
+      run: |
+        cd build
+        gcovr -r .. --xml-pretty --output coverage.xml --html-details coverage.html > coverage.log 2>&1 || true
 
-      - name: Compilar proyecto
-        run: |
-          cd build
-          make -j$(nproc)
+    - name: Validar cobertura mínima
+      shell: bash
+      run: |
+        cd build
+        COVERAGE_RESULT=$(gcovr -r .. | grep "TOTAL" | awk '{print $NF}' | cut -d '%' -f 1)
+        echo "Cobertura detectada: ${COVERAGE_RESULT}%"
 
-      - name: Ejecutar tests
-        run: |
-          cd build
-          ctest --output-on-failure
+        if [ "$(echo "$COVERAGE_RESULT > 1" | bc)" -eq 1 ]; then
+          echo "Cobertura OK"
+          exit 0
+        else
+          echo "Cobertura insuficiente:"
+          cat coverage.log
+          exit 1
+        fi
 
-      - name: Generar reporte de cobertura
-        run: |
-          cd build
-          gcovr -r .. --xml-pretty --output coverage.xml --html-details coverage.html > coverage.log 2>&1 || true
-
-      - name: Validar cobertura mínima
-        run: |
-          cd build
-          COVERAGE_RESULT=$(gcovr -r .. | grep "TOTAL" | awk '{print $NF}' | cut -d '%' -f 1)
-          echo "Cobertura detectada: ${COVERAGE_RESULT}%"
-
-          if [ "$(echo "$COVERAGE_RESULT > 1" | bc)" -eq 1 ]; then
-            echo "Cobertura OK"
-            exit 0
-          else
-            echo "Coverage insuficiente:"
-            cat coverage.log
-            exit 1
-          fi
-
-      - name: Subir reporte de cobertura
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: cobertura-report
-          path: build/coverage.*
-          retention-days: 2
+    - name: Subir reporte de cobertura
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: cobertura-report
+        path: build/coverage.*
+        retention-days: 2
