@@ -18,7 +18,7 @@ set(CMAKE_C_FLAGS_DEBUG "-g3 -Wall -pedantic -Werror -Wextra -Wconversion")
 # Include headers
 include_directories(include)
 
-# Find dependencies
+# --- Unity dependency ---
 find_package(unity REQUIRED)
 
 # --- cJSON: Try Conan first, fallback to system library ---
@@ -31,17 +31,19 @@ else()
     message(STATUS "Using system cJSON")
     find_library(CJSON_LIBRARY cjson REQUIRED)
     find_path(CJSON_INCLUDE_DIR cjson/cJSON.h REQUIRED)
-    add_library(cjson_system INTERFACE)
-    target_include_directories(cjson_system INTERFACE ${CJSON_INCLUDE_DIR})
-    target_link_libraries(cjson_system INTERFACE ${CJSON_LIBRARY})
+
+    # Create an imported static library target for system cJSON
+    add_library(cjson_system STATIC IMPORTED)
+    set_target_properties(cjson_system PROPERTIES
+        IMPORTED_LOCATION "${CJSON_LIBRARY}"
+        INTERFACE_INCLUDE_DIRECTORIES "${CJSON_INCLUDE_DIR}"
+    )
+
     set(CJSON_TARGET cjson_system)
 endif()
 
 # Add executable
 add_executable(${PROJECT_NAME} src/main.c)
-
-# Include system includes (optional)
-target_include_directories(${PROJECT_NAME} PRIVATE /usr/include)
 
 # Link dependencies
 target_link_libraries(${PROJECT_NAME} PRIVATE ${CJSON_TARGET})
