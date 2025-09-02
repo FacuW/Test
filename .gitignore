@@ -2,8 +2,11 @@
 CMakeCache.txt
 CMakeFiles/
 cmake_install.cmake
+CMakeUserPresets.json
 Makefile
 CTestTestfile.cmake
 DartConfiguration.tcl
+venv/
+build/
 
 
