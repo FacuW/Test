@@ -26,6 +26,8 @@ find_package(unity REQUIRED)
 # add_library --> .o/.so/-sll STATIC SHARED
 add_executable(${PROJECT_NAME} src/main.c)
 
+target_include_directories(${PROJECT_NAME} PRIVATE /usr/include)
+
 # Link dependencies
 target_link_libraries(${PROJECT_NAME} PRIVATE cjson::cjson)
 target_link_libraries(${PROJECT_NAME} PRIVATE unity::unity)
