@@ -9,5 +9,6 @@
 # Archivos de entorno virtual de Python
 /venv/
 /build/
-
+/cJSON/
+/external/
 
