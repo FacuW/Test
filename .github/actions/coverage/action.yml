@@ -1,0 +1,59 @@
+name: "Verificación de Cobertura"
+description: "Ejecuta tests y verifica cobertura"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Instalar dependencias
+      shell: bash
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y cmake gcovr lcov bc graphviz
+
+    - name: Configurar CMake con flags de cobertura
+      shell: bash
+      run: |
+        mkdir -p build
+        cd build
+        cmake .. \
+          -DCMAKE_BUILD_TYPE=Debug \
+          -DCMAKE_C_FLAGS="--coverage" \
+          -DCMAKE_CXX_FLAGS="--coverage"
+
+    - name: Compilar proyecto
+      shell: bash
+      run: cmake --build build -j$(nproc)
+
+    - name: Ejecutar tests
+      shell: bash
+      run: ctest --test-dir build --output-on-failure
+
+    - name: Generar reporte de cobertura
+      shell: bash
+      run: |
+        cd build
+        gcovr -r .. --xml-pretty --output coverage.xml --html-details coverage.html > coverage.log 2>&1 || true
+
+    - name: Validar cobertura mínima
+      shell: bash
+      run: |
+        cd build
+        COVERAGE_RESULT=$(gcovr -r .. | grep "TOTAL" | awk '{print $NF}' | cut -d '%' -f 1)
+        echo "Cobertura detectada: ${COVERAGE_RESULT}%"
+
+        if [ "$(echo "$COVERAGE_RESULT > 1" | bc)" -eq 1 ]; then
+          echo "Cobertura OK"
+          exit 0
+        else
+          echo "Cobertura insuficiente:"
+          cat coverage.log
+          exit 1
+        fi
+
+    - name: Subir reporte de cobertura
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: cobertura-report
+        path: build/coverage.*
+        retention-days: 2

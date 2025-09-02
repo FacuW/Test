@@ -1,0 +1,52 @@
+name: Build Project
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y cmake build-essential git libmicrohttpd-dev libcjson-dev python3-pip
+
+    - name: Install Conan
+      run: |
+        pip3 install conan==2.4.1
+
+    - name: Setup Conan profile
+      run: |
+        conan profile detect --force
+
+    - name: Install dependencies with Conan
+      run: |
+        conan install . --output-folder=build --build=missing
+
+    - name: Clone Prometheus client
+      run: |
+        git clone https://github.com/digitalocean/prometheus-client-c.git
+        cd prometheus-client-c
+        rm -rf promhttp
+        mkdir -p build
+        cd build
+        cmake ..
+        make
+        sudo make install
+
+    - name: Build main project
+      run: |
+        rm -rf build
+        mkdir build
+        cd build
+        cmake .. -DCMAKE_TOOLCHAIN_FILE=build/Release/generators/conan_toolchain.cmake -DCMAKE_BUILD_TYPE=Release
+        make -j$(nproc)

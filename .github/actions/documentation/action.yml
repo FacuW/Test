@@ -1,0 +1,41 @@
+name: "Documentation check"
+description: "Checks the project documentation"
+
+runs: 
+  using: "composite"
+  steps: 
+    - name: Validate documentation
+      shell: bash
+      run: |
+        cp Doxyfile Doxyfile.temp
+
+    - name: Clear Graphviz cache
+      shell: bash
+      run: sudo dot -c
+    
+    - name: "Run validation"
+      shell: bash
+      run: |
+        ERROR_FILE=$(pwd)/doxygen_errors.log
+        doxygen -s Doxyfile.temp 2> $ERROR_FILE
+    
+        if [-s $ERROR_FILE]; then
+          echo "Doxygen found issues in the documentation:"
+          cat $ERROR_FILE
+          exit 1
+        else
+          echo "No issues found in the documentation"
+          exit 0
+        fi
+
+    - name: "Cleanup"
+      shell: bash
+      run: rm -f Doxyfile.temp
+    
+    - name: Upload documentation
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with: 
+        name: doxygen-errors
+        path: ./doxygen_errors.log
+        retention-days: 2
