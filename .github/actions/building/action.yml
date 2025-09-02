@@ -5,54 +5,54 @@ runs:
   using: "composite"
   steps:
     
-name: Install system dependencies
-shell: bash
-run: |
+    name: Install system dependencies
+    shell: bash
+    run: |
       sudo apt-get update
       sudo apt-get install -y cmake build-essential git libmicrohttpd-dev libcjson-dev python3-pip,
 
     
-name: Clone prometheus client
-shell: bash
-run: |
-      git clone https://github.com/digitalocean/prometheus-client-c.git
-      cd prometheus-client-c
-      rm -rf promhttp,
+    name: Clone prometheus client
+    shell: bash
+    run: |
+          git clone https://github.com/digitalocean/prometheus-client-c.git
+          cd prometheus-client-c
+          rm -rf promhttp,
 
-    
-name: Building and Installing Prometheus
-shell: bash
-run: |
-      cd prometheus-client-c/prom
-      mkdir -p build
-      cd build
-      cmake ..
-      make 
-      sudo make install,
+        
+    name: Building and Installing Prometheus
+    shell: bash
+    run: |
+          cd prometheus-client-c/prom
+          mkdir -p build
+          cd build
+          cmake ..
+          make 
+          sudo make install,
 
-    
-name: Install Conan
-shell: bash
-run: |
-      pip3 install conan==2.4.1,
+        
+    name: Install Conan
+    shell: bash
+    run: |
+          pip3 install conan==2.4.1,
 
-    
-name: Setup Conan profile
-shell: bash
-run: |
-      conan profile detect --force,
+        
+    name: Setup Conan profile
+    shell: bash
+    run: |
+          conan profile detect --force,
 
-    
-name: Install dependencies with Conan
-shell: bash
-run: |
-      conan install . --output-folder=. --build=missing,
+        
+    name: Install dependencies with Conan
+    shell: bash
+    run: |
+          conan install . --output-folder=. --build=missing,
 
-    
-name: Build main project
-shell: bash
-run: |
-      mkdir -p build
-      cd build
-      cmake .. -DCMAKE_TOOLCHAIN_FILE=build/Release/generators/conan_toolchain.cmake -DCMAKE_BUILD_TYPE=Release
-      make,
+        
+    name: Build main project
+    shell: bash
+    run: |
+          mkdir -p build
+          cd build
+          cmake .. -DCMAKE_TOOLCHAIN_FILE=build/Release/generators/conan_toolchain.cmake -DCMAKE_BUILD_TYPE=Release
+          make,
