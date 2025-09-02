@@ -2,7 +2,7 @@
 cmake_minimum_required(VERSION 3.25 FATAL_ERROR)
 
 # Create project
-project(prueba_firma_ssh
+project(ShellProject
     VERSION 1.0.0
     DESCRIPTION "A nice shell project!"
     LANGUAGES C
