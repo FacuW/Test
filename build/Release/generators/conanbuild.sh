@@ -1,1 +1,0 @@
-. "/home/facu/SO1/Sistemas-Operativos-1/build/Release/generators/conanbuildenv-release-x86_64.sh"
