@@ -6,7 +6,9 @@ runs:
   steps: 
     - name: Validate documentation
       shell: bash
-      run: cp Doxyfile Doxyfile.temp
+      run: |
+        cp Doxyfile Doxyfile.temp
+        mkdir -p lib 
 
     - name: Clear Graphviz cache
       shell: bash
