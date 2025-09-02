@@ -18,6 +18,9 @@ set(CMAKE_C_FLAGS_DEBUG "-g3 -Wall -pedantic -Werror -Wextra -Wconversion")
 # Include headers
 include_directories(include)
 
+add_subdirectory(build/_deps/unity-src)
+add_subdirectory(build/_deps/cjson-src)
+
 # Find dependences
 find_package(cJSON REQUIRED)
 find_package(unity REQUIRED)
