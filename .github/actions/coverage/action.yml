@@ -4,36 +4,69 @@ description: "Ejecuta tests y verifica cobertura"
 runs:
   using: "composite"
   steps:
+    # -----------------------------
+    # Instalar dependencias del sistema
+    # -----------------------------
     - name: Instalar dependencias
       shell: bash
       run: |
         sudo apt-get update
-        sudo apt-get install -y cmake gcovr lcov bc graphviz libcjson-dev
+        sudo apt-get install -y cmake gcovr lcov bc graphviz libcjson-dev python3-pip
 
+    # -----------------------------
+    # Instalar y configurar Conan
+    # -----------------------------
+    - name: Instalar Conan
+      shell: bash
+      run: pip3 install conan==2.4.1
+
+    - name: Configurar perfil de Conan
+      shell: bash
+      run: conan profile detect --force
+
+    - name: Instalar dependencias con Conan
+      shell: bash
+      run: conan install . --output-folder=. --build=missing
+
+    # -----------------------------
+    # Configurar CMake con coverage
+    # -----------------------------
     - name: Configurar CMake con flags de cobertura
       shell: bash
       run: |
         mkdir -p build
         cd build
         cmake .. \
+          -DCMAKE_TOOLCHAIN_FILE=build/Release/generators/conan_toolchain.cmake \
           -DCMAKE_BUILD_TYPE=Debug \
-          -DCMAKE_C_FLAGS="--coverage" \
-          -DCMAKE_CXX_FLAGS="--coverage"
+          -DCMAKE_C_FLAGS="--coverage"
 
+    # -----------------------------
+    # Compilar proyecto
+    # -----------------------------
     - name: Compilar proyecto
       shell: bash
       run: cmake --build build -j$(nproc)
 
+    # -----------------------------
+    # Ejecutar tests
+    # -----------------------------
     - name: Ejecutar tests
       shell: bash
       run: ctest --test-dir build --output-on-failure
 
+    # -----------------------------
+    # Generar reporte de cobertura
+    # -----------------------------
     - name: Generar reporte de cobertura
       shell: bash
       run: |
         cd build
         gcovr -r .. --xml-pretty --output coverage.xml --html-details coverage.html > coverage.log 2>&1 || true
 
+    # -----------------------------
+    # Validar cobertura mínima
+    # -----------------------------
     - name: Validar cobertura mínima
       shell: bash
       run: |
@@ -50,6 +83,9 @@ runs:
           exit 1
         fi
 
+    # -----------------------------
+    # Subir reporte de cobertura
+    # -----------------------------
     - name: Subir reporte de cobertura
       if: always()
       uses: actions/upload-artifact@v4
