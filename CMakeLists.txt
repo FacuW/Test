@@ -2,9 +2,9 @@
 cmake_minimum_required(VERSION 3.25 FATAL_ERROR)
 
 # Create project
-project(ShellProject
+project(TP1_Project
     VERSION 1.0.0
-    DESCRIPTION "A nice shell project!"
+    DESCRIPTION "A nice TP1 project!"
     LANGUAGES C
 )
 
@@ -26,8 +26,8 @@ find_package(unity REQUIRED)
 # add_library --> .o/.so/-sll STATIC SHARED
 add_executable(${PROJECT_NAME} src/main.c)
 
-target_include_directories(${PROJECT_NAME} PRIVATE /usr/include/cjson)
+target_include_directories(${PROJECT_NAME} PRIVATE /usr/include)
 
 # Link dependencies
-target_link_libraries(${PROJECT_NAME} PRIVATE cjson)
-target_link_libraries(${PROJECT_NAME} PRIVATE unity)
+target_link_libraries(${PROJECT_NAME} PRIVATE cjson::cjson)
+target_link_libraries(${PROJECT_NAME} PRIVATE unity::unity)
