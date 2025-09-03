@@ -1,58 +1,59 @@
-name: "Verificación de Cobertura"
-description: "Ejecuta tests y verifica cobertura"
+name: "Coverage"
+description: "Run tests and check code coverage"
 
-runs:
+runs: 
   using: "composite"
   steps:
-    - name: Instalar dependencias
+    - name: Install dependencies
       shell: bash
       run: |
-        sudo apt-get install -y cmake gcovr lcov bc graphviz
+        sudo apt-get install -y gcovr bc
 
-    - name: Configurar CMake con flags de cobertura
+    - name: "Run coverage"
       shell: bash
       run: |
+        PROJECT_PATH=$(pwd)
+
+        TEST_LOG="$PROJECT_PATH/test_output.txt"
+        TEST_ERRORS="$PROJECT_PATH/test_errors.txt"
+        COVERAGE_LOG="$PROJECT_PATH/coverage_output.txt"
+      
         mkdir -p build
         cd build
-        cmake .. \
-          -DCMAKE_BUILD_TYPE=Debug \
-          -DCMAKE_C_FLAGS="--coverage" \
-          -DCMAKE_CXX_FLAGS="--coverage"
+        mkdir -p test
+        cd ..
 
-    - name: Compilar proyecto
-      shell: bash
-      run: cmake --build build -j$(nproc)
-
-    - name: Ejecutar tests
-      shell: bash
-      run: ctest --test-dir build --output-on-failure
-
-    - name: Generar reporte de cobertura
-      shell: bash
-      run: |
-        cd build
-        gcovr -r .. --xml-pretty --output coverage.xml --html-details coverage.html > coverage.log 2>&1 || true
-
-    - name: Validar cobertura mínima
-      shell: bash
-      run: |
-        cd build
-        COVERAGE_RESULT=$(gcovr -r .. | grep "TOTAL" | awk '{print $NF}' | cut -d '%' -f 1)
-        echo "Cobertura detectada: ${COVERAGE_RESULT}%"
-
+        ctest --test-dir build/test --output-on-failure -VV \
+          1> $TEST_LOG \
+          2> $TEST_ERRORS
+        
+        if [ -s $TEST_ERRORS ]; then
+          echo "Errors during tests:"
+          cat $TEST_ERRORS
+           exit 0
+        fi
+      
+        gcovr -r $PROJECT_PATH . > $COVERAGE_LOG
+        
+        COVERAGE_RESULT=$(grep "TOTAL" $COVERAGE_LOG | awk '{print $NF}' | cut -d '%' -f 1)
+        
         if [ "$(echo "$COVERAGE_RESULT > 1" | bc)" -eq 1 ]; then
-          echo "Cobertura OK"
+          echo "Ok"
           exit 0
         else
-          echo "Cobertura insuficiente:"
-          cat coverage.log
+          echo "Coverage failed:"
+          cat $COVERAGE_LOG
           exit 1
         fi
 
-    - name: Subir reporte de cobertura
-      if: always()
+#hardcode una carpera test en build y el exit en line 33, debe se exit 1 
+    
+    - name: Upload coverage
       uses: actions/upload-artifact@v4
+      if: failure()
       with:
-        name: cobertura-report
-        path: build/coverage.*
-        retention-days: 2
+        path: |
+          ./test_output.txt
+          ./test_errors.txt
+          ./coverage_output.txt
+        retention-days: 3
