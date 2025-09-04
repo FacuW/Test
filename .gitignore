@@ -1,0 +1,14 @@
+# Archivos generados por CMake
+/CMakeCache.txt
+/CMakeFiles/
+/cmake_install.cmake
+/Makefile
+/CTestTestfile.cmake
+/DartConfiguration.tcl
+
+# Archivos de entorno virtual de Python
+/venv/
+/build/
+/cJSON/
+/external/
+

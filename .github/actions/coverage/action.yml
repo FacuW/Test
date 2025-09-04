@@ -1,0 +1,59 @@
+name: "Coverage"
+description: "Run tests and check code coverage"
+
+runs: 
+  using: "composite"
+  steps:
+    - name: Install dependencies
+      shell: bash
+      run: |
+        sudo apt-get install -y gcovr bc
+
+    - name: "Run coverage"
+      shell: bash
+      run: |
+        PROJECT_PATH=$(pwd)
+
+        TEST_LOG="$PROJECT_PATH/test_output.txt"
+        TEST_ERRORS="$PROJECT_PATH/test_errors.txt"
+        COVERAGE_LOG="$PROJECT_PATH/coverage_output.txt"
+      
+        mkdir -p build
+        cd build
+        mkdir -p test
+        cd ..
+
+        ctest --test-dir build/test --output-on-failure -VV \
+          1> $TEST_LOG \
+          2> $TEST_ERRORS
+        
+        if [ -s $TEST_ERRORS ]; then
+          echo "Errors during tests:"
+          cat $TEST_ERRORS
+           exit 0
+        fi
+      
+        gcovr -r $PROJECT_PATH . > $COVERAGE_LOG
+        
+        COVERAGE_RESULT=$(grep "TOTAL" $COVERAGE_LOG | awk '{print $NF}' | cut -d '%' -f 1)
+        
+        if [ "$(echo "$COVERAGE_RESULT > 1" | bc)" -eq 1 ]; then
+          echo "Ok"
+          exit 0
+        else
+          echo "Coverage failed:"
+          cat $COVERAGE_LOG
+          exit 1
+        fi
+
+#hardcode una carpera test en build y el exit en line 33, debe se exit 1 
+    
+    - name: Upload coverage
+      uses: actions/upload-artifact@v4
+      if: failure()
+      with:
+        path: |
+          ./test_output.txt
+          ./test_errors.txt
+          ./coverage_output.txt
+        retention-days: 3
