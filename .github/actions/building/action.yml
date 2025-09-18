@@ -11,80 +11,43 @@ runs:
         sudo apt-get update
         sudo apt-get install -y cmake build-essential git ninja-build python3-pip
 
-    
     - name: Clone prometheus client
       shell: bash
       run: |
-            git clone https://github.com/digitalocean/prometheus-client-c.git
-            cd prometheus-client-c
-            rm -rf promhttp
+        git clone https://github.com/digitalocean/prometheus-client-c.git
+        cd prometheus-client-c
+        rm -rf promhttp
 
-        
     - name: Building and Installing Prometheus
       shell: bash
       run: |
-            cd prometheus-client-c/prom
-            mkdir -p build
-            cd build
-            cmake ..
-            make 
-            sudo make install
+        cd prometheus-client-c/prom
+        mkdir -p build
+        cd build
+        cmake ..
+        make 
+        sudo make install
 
-        
     - name: Install Conan
       shell: bash
       run: |
-            pip3 install conan==2.4.1
-    
-    - name: Fix Unity CMakeLists.txt
-      shell: bash
-      run: |
-            # Reemplazar completamente el archivo CMakeLists.txt de Unity con una versión simplificada
-            cat > lib/unity/CMakeLists.txt << 'EOL'
-            cmake_minimum_required(VERSION 3.25 FATAL_ERROR)
-
-            project(
-                "unity_framework"
-                VERSION 1.0.0
-                DESCRIPTION "Unity testing framework"
-                LANGUAGES C
-            )
-
-            # Define the C standard
-            set(CMAKE_C_STANDARD 17)
-
-            # Include the 'src' directory
-            include_directories(src)
-
-            # Add the source files
-            set(UNITY_SOURCES
-                src/unity.c
-            )
-
-            # Create the library
-            add_library(unity_framework STATIC ${UNITY_SOURCES})
-
-            # Make headers available
-            target_include_directories(unity_framework PUBLIC src)
-            EOL
-            
-            echo "## Unity CMakeLists.txt reemplazado con versión simplificada."
+        pip3 install conan==2.4.1
         
     - name: Setup Conan profile
       shell: bash
       run: |
-            conan profile detect --force
+        conan profile detect --force
         
     - name: Install dependencies with Conan
       shell: bash
       run: |
-            mkdir -p build
-            cd build
-            conan install .. --output-folder=. --build=missing
+        mkdir -p build
+        cd build
+        conan install .. --output-folder=. --build=missing
         
     - name: Build main project
       shell: bash
       run: |
-            cd build
-            cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTS=ON
-            cmake --build .
+        cd build
+        cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTS=ON
+        cmake --build .

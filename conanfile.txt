@@ -1,5 +1,6 @@
 [requires]
 cjson/1.7.17
+unity/2.5.2
 
 [generators]
 CMakeDeps

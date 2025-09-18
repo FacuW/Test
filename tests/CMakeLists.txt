@@ -1,25 +1,20 @@
-# Tests CMakeLists.txt
-include_directories(../include)
-include_directories(../lib/unity/src)
-
-# Detectar si estamos en GitHub Actions
-if(DEFINED ENV{GITHUB_ACTIONS})
-  add_definitions(-DGITHUB_ACTIONS)
-endif()
+# Buscar paquetes necesarios
+find_package(unity REQUIRED)
+find_package(cjson REQUIRED)
 
 # Unit tests
 add_executable(test_main unit/test_main.c)
 
-# Enlazar con unity_framework
-target_link_libraries(test_main unity_framework)
+# Configurar include directories usando variables de CMake
+target_include_directories(test_main PRIVATE 
+    ${CMAKE_SOURCE_DIR}/include
+)
 
-# Linkear con cJSON (desde Conan o submódulo)
-if(cjson_FOUND)
-  target_link_libraries(test_main cjson::cjson)
-else()
-  include_directories(../lib/cjson)
-  target_link_libraries(test_main cjson)
-endif()
+# Enlazar librerías
+target_link_libraries(test_main 
+    unity::unity
+    cjson::cjson
+)
 
 # Add tests to CTest
 add_test(NAME unit_tests COMMAND test_main)
