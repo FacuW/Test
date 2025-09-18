@@ -1,6 +1,22 @@
 # Buscar paquetes necesarios
-find_package(unity REQUIRED)
 find_package(cjson REQUIRED)
+# Unity puede tener diferentes nombres en Conan
+find_package(unity QUIET)
+if(NOT unity_FOUND)
+    find_package(Unity QUIET)
+    if(NOT Unity_FOUND)
+        find_package(ThrowTheSwitch-Unity QUIET)
+        if(NOT ThrowTheSwitch-Unity_FOUND)
+            message(FATAL_ERROR "Unity testing framework not found. Available packages: unity, Unity, or ThrowTheSwitch-Unity")
+        else()
+            set(UNITY_TARGET ThrowTheSwitch-Unity::ThrowTheSwitch-Unity)
+        endif()
+    else()
+        set(UNITY_TARGET Unity::Unity)
+    endif()
+else()
+    set(UNITY_TARGET unity::unity)
+endif()
 
 # Unit tests
 add_executable(test_main unit/test_main.c)
@@ -12,7 +28,7 @@ target_include_directories(test_main PRIVATE
 
 # Enlazar librerías
 target_link_libraries(test_main 
-    unity::unity
+    ${UNITY_TARGET}
     cjson::cjson
 )
 
