@@ -1,5 +1,5 @@
 # Buscar paquetes necesarios
-find_package(cjson REQUIRED)
+find_package(cJSON REQUIRED)
 
 # Buscar Unity - manejo de diferentes nombres posibles
 find_package(unity QUIET)

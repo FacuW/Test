@@ -49,12 +49,5 @@ runs:
       shell: bash
       run: |
         cd build
-        # Verificar qué archivos generó Conan
-        ls -la
-        echo "=== Contenido de conan_toolchain.cmake ==="
-        head -20 conan_toolchain.cmake || echo "No existe conan_toolchain.cmake"
-        echo "=== Archivos .cmake generados ==="
-        find . -name "*.cmake" -type f
-        # Intentar el build
         cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTS=ON -DCMAKE_TOOLCHAIN_FILE=conan_toolchain.cmake
         cmake --build .
