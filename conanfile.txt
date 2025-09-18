@@ -7,5 +7,7 @@ CMakeDeps
 CMakeToolchain
 
 [options]
+# Opciones específicas para asegurar compatibilidad
+cjson/*:shared=False
 
 [imports]

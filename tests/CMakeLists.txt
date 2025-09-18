@@ -1,13 +1,14 @@
 # Buscar paquetes necesarios
 find_package(cjson REQUIRED)
-# Unity puede tener diferentes nombres en Conan
+
+# Buscar Unity - manejo de diferentes nombres posibles
 find_package(unity QUIET)
 if(NOT unity_FOUND)
     find_package(Unity QUIET)
     if(NOT Unity_FOUND)
         find_package(ThrowTheSwitch-Unity QUIET)
         if(NOT ThrowTheSwitch-Unity_FOUND)
-            message(FATAL_ERROR "Unity testing framework not found. Available packages: unity, Unity, or ThrowTheSwitch-Unity")
+            message(FATAL_ERROR "Unity testing framework not found. Make sure unity is listed in conanfile.txt")
         else()
             set(UNITY_TARGET ThrowTheSwitch-Unity::ThrowTheSwitch-Unity)
         endif()
@@ -21,7 +22,7 @@ endif()
 # Unit tests
 add_executable(test_main unit/test_main.c)
 
-# Configurar include directories usando variables de CMake
+# Configurar include directories
 target_include_directories(test_main PRIVATE 
     ${CMAKE_SOURCE_DIR}/include
 )

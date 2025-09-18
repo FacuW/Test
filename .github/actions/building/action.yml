@@ -49,5 +49,5 @@ runs:
       shell: bash
       run: |
         cd build
-        cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTS=ON
+        cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTS=ON -DCMAKE_TOOLCHAIN_FILE=conan_toolchain.cmake
         cmake --build .
