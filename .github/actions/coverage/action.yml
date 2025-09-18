@@ -1,0 +1,74 @@
+name: "Coverage"
+description: "Run tests and check code coverage"
+
+runs: 
+  using: "composite"
+  steps:
+    - name: Install dependencies
+      shell: bash
+      run: |
+        sudo apt-get install -y gcovr bc
+
+    - name: "Build with coverage"
+      shell: bash
+      run: |
+        PROJECT_PATH=$(pwd)
+        mkdir -p build
+        cd build
+        
+        # Verificar si Conan está instalado
+        if command -v conan &> /dev/null; then
+          echo "## Conan está instalado, configurando dependencias..."
+          conan profile detect --force
+          conan install .. --output-folder=. --build=missing
+        fi
+        
+        # Compilar con flags de cobertura
+        cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTS=ON -DCMAKE_C_FLAGS="--coverage"
+        cmake --build .
+
+    - name: "Run tests and coverage"
+      shell: bash
+      run: |
+        PROJECT_PATH=$(pwd)
+
+        TEST_LOG="$PROJECT_PATH/test_output.txt"
+        TEST_ERRORS="$PROJECT_PATH/test_errors.txt"
+        COVERAGE_LOG="$PROJECT_PATH/coverage_output.txt"
+      
+        # Ejecutar los tests
+        cd build
+        ctest --output-on-failure -VV \
+          1> $TEST_LOG \
+          2> $TEST_ERRORS
+        
+        if [ -s $TEST_ERRORS ]; then
+          echo "Errors during tests:"
+          cat $TEST_ERRORS
+          exit 1
+        fi
+      
+        # Generar informe de cobertura
+        cd $PROJECT_PATH
+        gcovr -r $PROJECT_PATH . > $COVERAGE_LOG
+        
+        COVERAGE_RESULT=$(grep "TOTAL" $COVERAGE_LOG | awk '{print $NF}' | cut -d '%' -f 1)
+        
+        if [ "$(echo "$COVERAGE_RESULT > 1" | bc)" -eq 1 ]; then
+          echo "Coverage: $COVERAGE_RESULT%"
+          exit 0
+        else
+          echo "Coverage failed: $COVERAGE_RESULT%"
+          cat $COVERAGE_LOG
+          exit 1
+        fi
+    
+    - name: Upload coverage
+      uses: actions/upload-artifact@v4
+      if: failure()
+      with:
+        path: |
+          ./test_output.txt
+          ./test_errors.txt
+          ./coverage_output.txt
+        retention-days: 3

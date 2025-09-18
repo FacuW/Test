@@ -1,0 +1,84 @@
+
+# Prerequisites
+*.d
+
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Fortran module files
+*.mod
+*.smod
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
+
+# Build directory
+/build/
+
+# External directory
+/external/
+
+# scripts directory
+/scripts/
+
+# Dependency files
+*.d
+
+# Editor/IDE specific files
+.vscode/
+.idea/
+.clion/
+
+# CLion specific
+cmake-build-*/
+
+# Conan files
+/conan/
+
+# Don't track sonar files
+.scannerwork/
+
+# Test results
+/test_results/
+
+/prometheus-client-c/
+
+# pre-commit yaml file
+.pre-commit-config.yaml
+
+# Coverage files
+*.gcov
+*.gcda
+*.gcno
+
+# Logs
+*.log
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db

@@ -1,0 +1,9 @@
+[submodule "lib/cjson"]
+	path = lib/cjson
+	url = https://github.com/DaveGamble/cJSON.git
+[submodule "lib/unity"]
+	path = lib/unity
+	url = https://github.com/ThrowTheSwitch/Unity.git
+[submodule "lib/prometheus-client-c"]
+    path = lib/prometheus-client-c
+    url = https://github.com/digitalocean/prometheus-client-c.git

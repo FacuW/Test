@@ -1,0 +1,10 @@
+[requires]
+cjson/1.7.17
+
+[generators]
+CMakeDeps
+CMakeToolchain
+
+[options]
+
+[imports]

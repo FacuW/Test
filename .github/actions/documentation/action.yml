@@ -1,0 +1,51 @@
+name: "Documentation check"
+description: "Checks the project documentation"
+
+runs: 
+  using: "composite"
+  steps: 
+    - name: Validate documentation
+      shell: bash
+      run: |
+        # Modificar el Doxyfile para excluir los submódulos
+        sed -i 's/^EXCLUDE\s*=.*/EXCLUDE                = lib build/' Doxyfile
+        sed -i 's/^EXCLUDE_PATTERNS\s*=.*/EXCLUDE_PATTERNS       = *\/lib\/* *\/build\/*/' Doxyfile
+        
+        cp Doxyfile Doxyfile.temp
+        mkdir -p lib 
+
+    - name: Clear Graphviz cache
+      shell: bash
+      run: sudo dot -c
+    
+    - name: "Run validation"
+      shell: bash
+      run: |
+        set -e
+        ERROR_FILE=$(pwd)/doxygen_errors.log
+        # Ejecutar doxygen y filtrar las advertencias de los submódulos
+        doxygen -s Doxyfile.temp 2> $ERROR_FILE.full
+        
+        # Filtrar las advertencias que provienen de lib/
+        grep -v "lib/cjson" $ERROR_FILE.full | grep -v "lib/unity" > $ERROR_FILE || true
+        
+        if [ -s "$ERROR_FILE" ]; then
+          echo "Doxygen found issues in the documentation:"
+          cat "$ERROR_FILE"
+          exit 1
+        else
+          echo "No issues found in the documentation"
+          exit 0
+        fi
+
+    - name: "Cleanup"
+      shell: bash
+      run: rm -f Doxyfile.temp $ERROR_FILE.full
+    
+    - name: Upload documentation
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with: 
+        name: doxygen-errors
+        path: ./doxygen_errors.log
+        retention-days: 2
