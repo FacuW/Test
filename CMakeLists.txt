@@ -18,6 +18,13 @@ endif()
 
 # Buscar paquetes instalados por Conan
 find_package(cjson REQUIRED)
+# Alternativa si el anterior falla
+if(NOT cjson_FOUND)
+    find_package(libcjson REQUIRED)
+    if(libcjson_FOUND)
+        add_library(cjson::cjson ALIAS libcjson::libcjson)
+    endif()
+endif()
 
 # Define el estándar de C
 set(CMAKE_C_STANDARD 17)

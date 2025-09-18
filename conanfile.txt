@@ -1,5 +1,5 @@
 [requires]
-cjson/1.7.17
+cjson/1.7.18
 unity/2.5.2
 
 [generators]
