@@ -193,18 +193,31 @@ int collect_metrics(system_metrics_t* metrics)
 /**
  * @brief Guarda métricas en formato NDJSON
  */
-int save_metrics_to_json(const system_metrics_t* metrics, const char* filepath __attribute__((unused)))
+int save_metrics_to_json(const system_metrics_t* metrics, const char* filepath)
 {
     if (!metrics)
         return -1;
 
-    // Generar nombre de archivo metrics-YYYYMMDD.log
-    time_t t = time(NULL);
-    struct tm tm_info;
-    localtime_r(&t, &tm_info);
-
-    char filename[128];
-    strftime(filename, sizeof(filename), "/var/lib/monitoreo/metrics-%Y%m%d.log", &tm_info);
+    // Usar el filepath proporcionado o generar uno por defecto
+    char filename[256];
+    if (filepath && strlen(filepath) > 0)
+    {
+        snprintf(filename, sizeof(filename), "%s", filepath);
+    }
+    else
+    {
+        // Generar nombre de archivo metrics-YYYYMMDD.log por defecto
+        time_t t = time(NULL);
+        struct tm tm_info;
+        localtime_r(&t, &tm_info);
+        
+        const char* log_dir = test_log_dir ? test_log_dir : DEFAULT_LOG_DIR;
+        snprintf(filename, sizeof(filename), "%smetrics-%04d%02d%02d.log",
+                log_dir,
+                tm_info.tm_year + 1900,
+                tm_info.tm_mon + 1,
+                tm_info.tm_mday);
+    }
 
     cJSON* json = cJSON_CreateObject();
     if (!json)
