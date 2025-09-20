@@ -210,13 +210,10 @@ int save_metrics_to_json(const system_metrics_t* metrics, const char* filepath)
         time_t t = time(NULL);
         struct tm tm_info;
         localtime_r(&t, &tm_info);
-        
+
         const char* log_dir = test_log_dir ? test_log_dir : DEFAULT_LOG_DIR;
-        snprintf(filename, sizeof(filename), "%smetrics-%04d%02d%02d.log",
-                log_dir,
-                tm_info.tm_year + 1900,
-                tm_info.tm_mon + 1,
-                tm_info.tm_mday);
+        snprintf(filename, sizeof(filename), "%smetrics-%04d%02d%02d.log", log_dir, tm_info.tm_year + 1900,
+                 tm_info.tm_mon + 1, tm_info.tm_mday);
     }
 
     cJSON* json = cJSON_CreateObject();
