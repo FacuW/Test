@@ -3,13 +3,13 @@
  * @brief Implementación de funciones para recolectar métricas del sistema
  */
 
-#include "monitoring.h"
 #include "cjson/cJSON.h"
+#include "monitoring.h"
 #include <errno.h>
-#include <sys/stat.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 #include <time.h>
 #include <unistd.h>
 
@@ -62,8 +62,8 @@ int read_cpu_metrics(cpu_metrics_t* cpu)
 
     unsigned long user, nice, system, idle, iowait, irq, softirq, steal;
 
-    int result = fscanf(file, "cpu %lu %lu %lu %lu %lu %lu %lu %lu",
-                        &user, &nice, &system, &idle, &iowait, &irq, &softirq, &steal);
+    int result = fscanf(file, "cpu %lu %lu %lu %lu %lu %lu %lu %lu", &user, &nice, &system, &idle, &iowait, &irq,
+                        &softirq, &steal);
     fclose(file);
 
     if (result != 8)
@@ -250,4 +250,6 @@ void cleanup_monitoring_system(void)
 }
 
 /* Dummy para evitar warning de unidad de traducción vacía */
-void metrics_dummy(void) {}
+void metrics_dummy(void)
+{
+}

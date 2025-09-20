@@ -7,8 +7,12 @@
 #include "monitoring.h"
 #include "unity.h"
 
-void setUp(void) { }
-void tearDown(void) { }
+void setUp(void)
+{
+}
+void tearDown(void)
+{
+}
 
 /**
  * @brief Test básico para verificar que cJSON funciona correctamente

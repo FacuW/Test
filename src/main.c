@@ -3,8 +3,8 @@
  * @brief Programa principal del sistema de monitoreo
  */
 
-#include "monitoring.h"
 #include "cjson/cJSON.h"
+#include "monitoring.h"
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -32,10 +32,7 @@ void generate_filename(char* buffer, size_t size)
     time_t now = time(NULL);
     struct tm* tm_info = localtime(&now);
 
-    snprintf(buffer, size, "%smetrics-%04d%02d%02d.log",
-             DEFAULT_LOG_DIR,
-             tm_info->tm_year + 1900,
-             tm_info->tm_mon + 1,
+    snprintf(buffer, size, "%smetrics-%04d%02d%02d.log", DEFAULT_LOG_DIR, tm_info->tm_year + 1900, tm_info->tm_mon + 1,
              tm_info->tm_mday);
 }
 

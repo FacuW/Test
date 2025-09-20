@@ -46,7 +46,7 @@ target_link_libraries(test_main
 )
 
 # Test de métricas (incluye el código fuente)
-add_executable(test_metrics unit/test.metrics.c)
+add_executable(test_metrics unit/test_metrics.c)
 
 target_include_directories(test_metrics PRIVATE 
     ${CMAKE_SOURCE_DIR}/include

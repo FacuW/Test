@@ -15,8 +15,13 @@
 
 #define TEST_JSON_FILE "/tmp/test_metrics.json"
 
-void setUp(void) { }
-void tearDown(void) { remove(TEST_JSON_FILE); }
+void setUp(void)
+{
+}
+void tearDown(void)
+{
+    remove(TEST_JSON_FILE);
+}
 
 /**
  * @brief Test read_cpu_metrics
@@ -120,10 +125,10 @@ void test_save_metrics_to_json(void)
  */
 void test_init_monitoring_system(void)
 {
-    #ifdef GITHUB_ACTIONS
+#ifdef GITHUB_ACTIONS
     TEST_IGNORE_MESSAGE("Skipping test in GitHub Actions");
     return;
-    #endif
+#endif
 
     char test_dir[256];
     snprintf(test_dir, sizeof(test_dir), "/tmp/monitoring_test_%d/", getpid());
