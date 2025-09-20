@@ -23,8 +23,8 @@ runs:
           conan install .. --output-folder=. --build=missing
         fi
         
-        # Compilar con flags de cobertura
-        cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTS=ON -DCMAKE_C_FLAGS="--coverage"
+        # Compilar con flags de cobertura usando el toolchain de Conan
+        cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTS=ON -DCMAKE_C_FLAGS="--coverage" -DCMAKE_TOOLCHAIN_FILE=conan_toolchain.cmake
         cmake --build .
 
     - name: "Run tests and coverage"

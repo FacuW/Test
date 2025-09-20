@@ -17,7 +17,7 @@ if(EXISTS "${CONAN_TOOLCHAIN_PATH}")
 endif()
 
 # Buscar paquetes instalados por Conan
-find_package(cjson REQUIRED)
+find_package(cJSON REQUIRED)
 
 # Define el estándar de C
 set(CMAKE_C_STANDARD 17)
