@@ -23,8 +23,12 @@ runs:
           conan install .. --output-folder=. --build=missing
         fi
         
-        # Compilar con flags de cobertura usando el toolchain de Conan
-        cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTS=ON -DCMAKE_C_FLAGS="--coverage" -DCMAKE_TOOLCHAIN_FILE=conan_toolchain.cmake
+        # Compilar con flags de cobertura usando el toolchain de Conan si existe
+        if [ -f "conan_toolchain.cmake" ]; then
+          cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTS=ON -DCMAKE_C_FLAGS="--coverage" -DCMAKE_TOOLCHAIN_FILE=conan_toolchain.cmake
+        else
+          cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTS=ON -DCMAKE_C_FLAGS="--coverage"
+        fi
         cmake --build .
 
     - name: "Run tests and coverage"
@@ -35,38 +39,79 @@ runs:
         TEST_LOG="$PROJECT_PATH/test_output.txt"
         TEST_ERRORS="$PROJECT_PATH/test_errors.txt"
         COVERAGE_LOG="$PROJECT_PATH/coverage_output.txt"
-      
+        
+        echo "=== Ejecutando tests ==="
+        
         # Ejecutar los tests
         cd build
-        ctest --output-on-failure -VV \
-          1> $TEST_LOG \
-          2> $TEST_ERRORS
+        ctest --output-on-failure -VV > "$TEST_LOG" 2> "$TEST_ERRORS"
+        TEST_EXIT_CODE=$?
         
-        if [ -s $TEST_ERRORS ]; then
-          echo "Errors during tests:"
-          cat $TEST_ERRORS
+        echo "Test exit code: $TEST_EXIT_CODE"
+        
+        if [ $TEST_EXIT_CODE -ne 0 ]; then
+          echo "Tests failed with exit code: $TEST_EXIT_CODE"
+          if [ -s "$TEST_ERRORS" ]; then
+            echo "=== Test Errors ==="
+            cat "$TEST_ERRORS"
+          fi
+          if [ -s "$TEST_LOG" ]; then
+            echo "=== Test Output ==="
+            cat "$TEST_LOG"
+          fi
           exit 1
         fi
-      
+        
+        echo "=== Tests completados exitosamente ==="
+        
+        # Verificar que existen archivos de cobertura
+        cd "$PROJECT_PATH"
+        echo "=== Buscando archivos de cobertura ==="
+        find . -name "*.gcda" -o -name "*.gcno" | head -10
+        
         # Generar informe de cobertura
-        cd $PROJECT_PATH
-        gcovr -r $PROJECT_PATH . > $COVERAGE_LOG
+        echo "=== Generando informe de cobertura ==="
+        gcovr -r "$PROJECT_PATH" --exclude="tests/*" --exclude="build/*" . > "$COVERAGE_LOG" 2>&1
+        GCOVR_EXIT_CODE=$?
         
-        COVERAGE_RESULT=$(grep "TOTAL" $COVERAGE_LOG | awk '{print $NF}' | cut -d '%' -f 1)
+        echo "gcovr exit code: $GCOVR_EXIT_CODE"
         
-        if [ "$(echo "$COVERAGE_RESULT > 50" | bc)" -eq 1 ]; then
-          echo "Coverage: $COVERAGE_RESULT%"
+        if [ $GCOVR_EXIT_CODE -ne 0 ]; then
+          echo "gcovr failed with exit code: $GCOVR_EXIT_CODE"
+          echo "=== gcovr output ==="
+          cat "$COVERAGE_LOG"
+          exit 1
+        fi
+        
+        echo "=== Coverage Report ==="
+        cat "$COVERAGE_LOG"
+        
+        # Extraer porcentaje de cobertura
+        COVERAGE_RESULT=$(grep "TOTAL" "$COVERAGE_LOG" | awk '{print $NF}' | sed 's/%//')
+        
+        if [ -z "$COVERAGE_RESULT" ]; then
+          echo "No se pudo extraer el resultado de cobertura"
+          echo "Contenido completo del log de cobertura:"
+          cat "$COVERAGE_LOG"
+          exit 1
+        fi
+        
+        echo "Coverage result: $COVERAGE_RESULT%"
+        
+        # Verificar si la cobertura es suficiente
+        if [ "$(echo "$COVERAGE_RESULT >= 50" | bc -l)" -eq 1 ]; then
+          echo "✅ Coverage: $COVERAGE_RESULT% - PASSED"
           exit 0
         else
-          echo "Coverage failed: $COVERAGE_RESULT%"
-          cat $COVERAGE_LOG
+          echo "❌ Coverage failed: $COVERAGE_RESULT% (required: 50%)"
           exit 1
         fi
     
-    - name: Upload coverage
+    - name: Upload coverage artifacts
       uses: actions/upload-artifact@v4
       if: failure()
       with:
+        name: coverage-artifacts
         path: |
           ./test_output.txt
           ./test_errors.txt
