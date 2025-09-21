@@ -121,6 +121,34 @@ void test_save_metrics_to_json(void)
 }
 
 /**
+ * @brief Test save_metrics_to_json con NULL
+ */
+void test_save_metrics_to_json_null(void)
+{
+    // Test con metrics NULL
+    int result = save_metrics_to_json(NULL, TEST_JSON_FILE);
+    TEST_ASSERT_EQUAL_INT(-1, result);
+}
+
+/**
+ * @brief Test collect_metrics con NULL
+ */
+void test_collect_metrics_null(void)
+{
+    int result = collect_metrics(NULL);
+    TEST_ASSERT_EQUAL_INT(-1, result);
+}
+
+/**
+ * @brief Test cleanup_monitoring_system
+ */
+void test_cleanup_monitoring_system(void)
+{
+    cleanup_monitoring_system();
+    TEST_PASS(); // La función no retorna nada, solo verificamos que no crashee
+}
+
+/**
  * @brief Test init_monitoring_system
  */
 void test_init_monitoring_system(void)
@@ -164,6 +192,9 @@ int main(void)
     RUN_TEST(test_read_load_metrics);
     RUN_TEST(test_collect_metrics);
     RUN_TEST(test_save_metrics_to_json);
+    RUN_TEST(test_save_metrics_to_json_null);        
+    RUN_TEST(test_collect_metrics_null);             
+    RUN_TEST(test_cleanup_monitoring_system);       
     RUN_TEST(test_init_monitoring_system);
 
     return UNITY_END();
