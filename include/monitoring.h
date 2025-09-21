@@ -11,6 +11,7 @@
 #define MONITORING_VERSION "1.0.0"
 #define DEFAULT_LOG_DIR "/var/lib/monitoreo/"
 #define DEFAULT_INTERVAL 5
+#define DEFAULT_PROMETHEUS_PORT 8080
 
 // Estructuras para las métricas
 typedef struct
@@ -45,7 +46,7 @@ typedef struct
     load_metrics_t load;
 } system_metrics_t;
 
-// Funciones principales
+// Funciones principales del sistema de monitoreo
 int init_monitoring_system(void);
 int collect_metrics(system_metrics_t* metrics);
 int save_metrics_to_json(const system_metrics_t* metrics, const char* filepath);
@@ -55,6 +56,12 @@ void cleanup_monitoring_system(void);
 int read_cpu_metrics(cpu_metrics_t* cpu);
 int read_memory_metrics(memory_metrics_t* memory);
 int read_load_metrics(load_metrics_t* load);
+
+// NUEVAS FUNCIONES DE PROMETHEUS
+int init_prometheus_metrics(void);
+int update_prometheus_metrics(const system_metrics_t* metrics);
+int start_prometheus_server(int port);
+void cleanup_prometheus(void);
 
 // Variable global para testing (puede sobrescribirse en tests)
 extern char* test_log_dir;

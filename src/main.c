@@ -42,6 +42,7 @@ void generate_filename(char* buffer, size_t size)
 int main(int argc, char* argv[])
 {
     int interval = DEFAULT_INTERVAL;
+    int prometheus_port = DEFAULT_PROMETHEUS_PORT;
 
     // Procesar argumentos de línea de comandos
     for (int i = 1; i < argc; i++)
@@ -53,10 +54,20 @@ int main(int argc, char* argv[])
                 interval = DEFAULT_INTERVAL;
             i++;
         }
+        else if (strcmp(argv[i], "--prometheus-port") == 0 && i + 1 < argc)
+        {
+            prometheus_port = atoi(argv[i + 1]);
+            if (prometheus_port < 1024 || prometheus_port > 65535)
+                prometheus_port = DEFAULT_PROMETHEUS_PORT;
+            i++;
+        }
         else if (strcmp(argv[i], "--help") == 0)
         {
-            printf("Uso: %s [--interval SEGUNDOS]\n", argv[0]);
-            printf("  --interval SEGUNDOS  Intervalo de recolección de métricas (por defecto: %d)\n", DEFAULT_INTERVAL);
+            printf("Uso: %s [opciones]\n", argv[0]);
+            printf("Opciones:\n");
+            printf("  --interval SEGUNDOS       Intervalo de recolección de métricas (por defecto: %d)\n", DEFAULT_INTERVAL);
+            printf("  --prometheus-port PUERTO  Puerto para servidor Prometheus (por defecto: %d)\n", DEFAULT_PROMETHEUS_PORT);
+            printf("  --help                     Mostrar esta ayuda\n");
             return EXIT_SUCCESS;
         }
     }
@@ -75,9 +86,27 @@ int main(int argc, char* argv[])
         return EXIT_FAILURE;
     }
 
+    // Inicializar métricas de Prometheus
+    if (init_prometheus_metrics() != 0)
+    {
+        fprintf(stderr, "Error al inicializar métricas de Prometheus\n");
+        cleanup_monitoring_system();
+        return EXIT_FAILURE;
+    }
+
+    // Iniciar servidor HTTP de Prometheus
+    if (start_prometheus_server(prometheus_port) != 0)
+    {
+        fprintf(stderr, "Error al iniciar servidor de Prometheus\n");
+        cleanup_prometheus();
+        cleanup_monitoring_system();
+        return EXIT_FAILURE;
+    }
+
     printf("Sistema de monitoreo iniciado.\n");
     printf("Intervalo de recolección: %d segundos\n", interval);
     printf("Directorio de logs: %s\n", DEFAULT_LOG_DIR);
+    printf("Puerto Prometheus: %d\n", prometheus_port);
     printf("Presione Ctrl+C para detener\n\n");
 
     // Bucle principal de recolección de métricas
@@ -101,6 +130,16 @@ int main(int argc, char* argv[])
             {
                 fprintf(stderr, "Error al guardar métricas\n");
             }
+
+            // Actualizar métricas de Prometheus
+            if (update_prometheus_metrics(&metrics) == 0)
+            {
+                printf("Métricas de Prometheus actualizadas\n");
+            }
+            else
+            {
+                fprintf(stderr, "Error al actualizar métricas de Prometheus\n");
+            }
         }
         else
         {
@@ -112,6 +151,7 @@ int main(int argc, char* argv[])
     }
 
     // Limpiar recursos
+    cleanup_prometheus();
     cleanup_monitoring_system();
 
     printf("\n✅ Sistema de monitoreo detenido\n");
