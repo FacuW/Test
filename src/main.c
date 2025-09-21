@@ -65,8 +65,10 @@ int main(int argc, char* argv[])
         {
             printf("Uso: %s [opciones]\n", argv[0]);
             printf("Opciones:\n");
-            printf("  --interval SEGUNDOS       Intervalo de recolección de métricas (por defecto: %d)\n", DEFAULT_INTERVAL);
-            printf("  --prometheus-port PUERTO  Puerto para servidor Prometheus (por defecto: %d)\n", DEFAULT_PROMETHEUS_PORT);
+            printf("  --interval SEGUNDOS       Intervalo de recolección de métricas (por defecto: %d)\n",
+                   DEFAULT_INTERVAL);
+            printf("  --prometheus-port PUERTO  Puerto para servidor Prometheus (por defecto: %d)\n",
+                   DEFAULT_PROMETHEUS_PORT);
             printf("  --help                     Mostrar esta ayuda\n");
             return EXIT_SUCCESS;
         }
