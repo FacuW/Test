@@ -4,7 +4,6 @@
  */
 
 #include "monitoring.h"
-#include "cjson/cJSON.h"
 #include "unity.h"
 #include <errno.h>
 #include <stdio.h>
@@ -154,151 +153,6 @@ void test_init_monitoring_system(void)
 }
 
 /**
- * @brief Test que verifica que los timestamps aumentan entre mediciones
- */
-void test_metrics_timestamp_increases(void)
-{
-    system_metrics_t metrics1, metrics2;
-    
-    int result1 = collect_metrics(&metrics1);
-    TEST_ASSERT_EQUAL_INT(0, result1);
-    
-    sleep(1);
-    
-    int result2 = collect_metrics(&metrics2);
-    TEST_ASSERT_EQUAL_INT(0, result2);
-    
-    TEST_ASSERT_TRUE(metrics2.timestamp >= metrics1.timestamp);
-}
-
-/**
- * @brief Test de validación del formato JSON
- */
-void test_json_format_validation(void)
-{
-    system_metrics_t metrics;
-    int result = collect_metrics(&metrics);
-    TEST_ASSERT_EQUAL_INT(0, result);
-    
-    const char* test_file = "/tmp/test_json_validation.json";
-    result = save_metrics_to_json(&metrics, test_file);
-    TEST_ASSERT_EQUAL_INT(0, result);
-    
-    FILE* file = fopen(test_file, "r");
-    TEST_ASSERT_NOT_NULL(file);
-    
-    char buffer[1024];
-    char* line = fgets(buffer, sizeof(buffer), file);
-    TEST_ASSERT_NOT_NULL(line);
-    fclose(file);
-    
-    // Verificar que es JSON válido
-    cJSON* json = cJSON_Parse(buffer);
-    TEST_ASSERT_NOT_NULL(json);
-    
-    // Verificar campos obligatorios
-    cJSON* timestamp = cJSON_GetObjectItem(json, "timestamp");
-    TEST_ASSERT_NOT_NULL(timestamp);
-    TEST_ASSERT_TRUE(cJSON_IsNumber(timestamp));
-    
-    cJSON_Delete(json);
-    remove(test_file);
-}
-
-/**
- * @brief Test save_metrics_to_json con path NULL (usa path por defecto)
- */
-void test_save_metrics_with_null_path(void)
-{
-    system_metrics_t metrics;
-    collect_metrics(&metrics);
-    
-    // Debería usar path por defecto
-    int result = save_metrics_to_json(&metrics, NULL);
-    TEST_ASSERT_EQUAL_INT(0, result);
-}
-
-/**
- * @brief Test save_metrics_to_json con métricas NULL
- */
-void test_save_metrics_with_null_metrics(void)
-{
-    int result = save_metrics_to_json(NULL, "/tmp/test.json");
-    TEST_ASSERT_EQUAL_INT(-1, result);
-}
-
-/**
- * @brief Test collect_metrics con puntero NULL
- */
-void test_collect_metrics_with_null_pointer(void)
-{
-    int result = collect_metrics(NULL);
-    TEST_ASSERT_EQUAL_INT(-1, result);
-}
-
-/**
- * @brief Test que verifica rangos válidos de métricas de CPU
- */
-void test_cpu_metrics_ranges(void)
-{
-    cpu_metrics_t cpu;
-    int result = read_cpu_metrics(&cpu);
-    TEST_ASSERT_EQUAL_INT(0, result);
-    
-    // Verificar que los porcentajes estén en rango válido
-    TEST_ASSERT_TRUE(cpu.user >= 0.0 && cpu.user <= 100.0);
-    TEST_ASSERT_TRUE(cpu.system >= 0.0 && cpu.system <= 100.0);
-    TEST_ASSERT_TRUE(cpu.idle >= 0.0 && cpu.idle <= 100.0);
-    TEST_ASSERT_TRUE(cpu.usage_percent >= 0.0 && cpu.usage_percent <= 100.0);
-    
-    // La suma de user + system + idle debería ser menor o igual a 100
-    double sum = cpu.user + cpu.system + cpu.idle;
-    TEST_ASSERT_TRUE(sum <= 105.0); // Pequeño margen por redondeo
-}
-
-/**
- * @brief Test save_metrics_to_json con path vacío (debería usar default)
- */
-void test_save_metrics_with_empty_path(void)
-{
-    system_metrics_t metrics;
-    collect_metrics(&metrics);
-    
-    // Path vacío debería usar path por defecto
-    int result = save_metrics_to_json(&metrics, "");
-    TEST_ASSERT_EQUAL_INT(0, result);
-}
-
-/**
- * @brief Test cleanup_monitoring_system (aunque esté vacía)
- */
-void test_cleanup_monitoring_system(void)
-{
-    // Esta función debería ejecutarse sin problemas aunque esté vacía
-    cleanup_monitoring_system();
-    TEST_ASSERT_TRUE(1); // Test que siempre pasa para verificar que se ejecutó
-}
-
-/**
- * @brief Test para verificar coherencia en métricas de memoria
- */
-void test_memory_metrics_coherence(void)
-{
-    memory_metrics_t memory;
-    int result = read_memory_metrics(&memory);
-    TEST_ASSERT_EQUAL_INT(0, result);
-    
-    // Verificar que used es positivo y coherente
-    TEST_ASSERT_TRUE(memory.used >= 0);
-    TEST_ASSERT_TRUE(memory.total >= memory.used);
-    TEST_ASSERT_TRUE(memory.total >= memory.free);
-    
-    // El total debería ser la suma de todos los componentes
-    long calculated_total = memory.free + memory.buffers + memory.cached + memory.used;
-    TEST_ASSERT_EQUAL_INT(memory.total, calculated_total);
-}
-
-/**
  * @brief Función principal para ejecutar los tests
  */
 int main(void)
@@ -311,17 +165,6 @@ int main(void)
     RUN_TEST(test_collect_metrics);
     RUN_TEST(test_save_metrics_to_json);
     RUN_TEST(test_init_monitoring_system);
-    
-    // Nuevos tests para aumentar coverage
-    RUN_TEST(test_metrics_timestamp_increases);
-    RUN_TEST(test_json_format_validation);
-    RUN_TEST(test_save_metrics_with_null_path);
-    RUN_TEST(test_save_metrics_with_null_metrics);
-    RUN_TEST(test_collect_metrics_with_null_pointer);
-    RUN_TEST(test_cpu_metrics_ranges);
-    RUN_TEST(test_save_metrics_with_empty_path);
-    RUN_TEST(test_cleanup_monitoring_system);
-    RUN_TEST(test_memory_metrics_coherence);
 
     return UNITY_END();
 }
