@@ -18,7 +18,7 @@ jobs:
             -   name: install QA dependencies
                 uses: awalsh128/cache-apt-pkgs-action@latest
                 with:
-                    packages: doxygen gcovr lcov cppcheck graphviz clang-format valgrind bc
+                    packages: doxygen gcovr lcov cppcheck graphviz clang-format valgrind clang-tools bc
                     version: 1.0
             
             -   name: Run style check
@@ -32,3 +32,6 @@ jobs:
             
             -   name: Run tests and coverage 
                 uses: ./.github/actions/coverage
+
+            -   name: Run static analysis
+                uses: ./.github/actions/static-analysis
