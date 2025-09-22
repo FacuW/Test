@@ -142,7 +142,8 @@ int init_prometheus_metrics(void)
     // Crear métricas gauge para CPU
     prometheus_cpu_usage_percent = prom_gauge_new("monitoring_cpu_usage_percent", "CPU usage percentage", 0, NULL);
     prometheus_cpu_user_percent = prom_gauge_new("monitoring_cpu_user_percent", "CPU user time percentage", 0, NULL);
-    prometheus_cpu_system_percent = prom_gauge_new("monitoring_cpu_system_percent", "CPU system time percentage", 0, NULL);
+    prometheus_cpu_system_percent =
+        prom_gauge_new("monitoring_cpu_system_percent", "CPU system time percentage", 0, NULL);
 
     // Crear métricas gauge para memoria
     prometheus_memory_total_bytes = prom_gauge_new("monitoring_memory_total_bytes", "Total memory in bytes", 0, NULL);
@@ -160,8 +161,8 @@ int init_prometheus_metrics(void)
 
     // Verificar que todas las métricas se crearon correctamente
     if (!prometheus_cpu_usage_percent || !prometheus_cpu_user_percent || !prometheus_cpu_system_percent ||
-        !prometheus_memory_total_bytes || !prometheus_memory_free_bytes || !prometheus_memory_used_bytes || 
-        !prometheus_load_average_1m || !prometheus_load_average_5m || !prometheus_load_average_15m || 
+        !prometheus_memory_total_bytes || !prometheus_memory_free_bytes || !prometheus_memory_used_bytes ||
+        !prometheus_load_average_1m || !prometheus_load_average_5m || !prometheus_load_average_15m ||
         !prometheus_metrics_collected_total)
     {
         fprintf(stderr, "Error al crear métricas de Prometheus\n");
