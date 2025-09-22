@@ -1,0 +1,122 @@
+name: "Static Analysis"
+description: "Run static analysis tools (cppcheck, scan-build, valgrind)"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install static analysis tools
+      shell: bash
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y cppcheck clang-tools valgrind
+
+    - name: Run cppcheck
+      shell: bash
+      run: |
+        PROJECT_PATH=$(pwd)
+        ERROR_FILE=$PROJECT_PATH/cppcheck_errors.txt
+        
+        echo "Running cppcheck..."
+        cppcheck --enable=all \
+                 --error-exitcode=1 \
+                 --suppressions-list=<(echo "missingIncludeSystem") \
+                 --inline-suppr \
+                 --quiet \
+                 --std=c11 \
+                 --platform=unix64 \
+                 src/ include/ \
+                 2> $ERROR_FILE
+        
+        if [ -s $ERROR_FILE ]; then
+          echo "cppcheck found issues:"
+          cat $ERROR_FILE
+          exit 1
+        else
+          echo "cppcheck: No issues found"
+        fi
+
+    - name: Run scan-build
+      shell: bash
+      run: |
+        PROJECT_PATH=$(pwd)
+        SCAN_BUILD_DIR=$PROJECT_PATH/scan-build-results
+        
+        # Limpiar directorio previo
+        rm -rf $SCAN_BUILD_DIR
+        mkdir -p $SCAN_BUILD_DIR
+        
+        echo "Running scan-build..."
+        
+        # Crear build directory para scan-build
+        mkdir -p build-scan
+        cd build-scan
+        
+        # Configurar con Conan si está disponible
+        if command -v conan &> /dev/null; then
+          conan profile detect --force
+          conan install .. --output-folder=. --build=missing --settings=build_type=Debug
+        fi
+        
+        # Ejecutar scan-build
+        scan-build -o $SCAN_BUILD_DIR \
+                   --status-bugs \
+                   --keep-going \
+                   cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTS=ON -DCMAKE_TOOLCHAIN_FILE=conan_toolchain.cmake
+        
+        scan-build -o $SCAN_BUILD_DIR \
+                   --status-bugs \
+                   --keep-going \
+                   cmake --build .
+        
+        # Verificar resultados
+        if [ -d "$SCAN_BUILD_DIR" ] && [ "$(ls -A $SCAN_BUILD_DIR)" ]; then
+          echo "scan-build found issues:"
+          ls -la $SCAN_BUILD_DIR
+          exit 1
+        else
+          echo "scan-build: No issues found"
+        fi
+
+    - name: Run valgrind on tests
+      shell: bash
+      run: |
+        PROJECT_PATH=$(pwd)
+        
+        echo "Running valgrind on tests..."
+        
+        cd build
+        
+        # Ejecutar valgrind en los tests si existen
+        if [ -f "./test_main" ]; then
+          echo "Running valgrind on test_main..."
+          valgrind --tool=memcheck \
+                   --leak-check=full \
+                   --show-leak-kinds=all \
+                   --track-origins=yes \
+                   --error-exitcode=1 \
+                   --suppressions=<(echo -e "{\n   ignore_dl_stuff\n   Memcheck:Leak\n   ...\n   obj:*/ld-*.so\n}") \
+                   ./test_main
+        fi
+        
+        if [ -f "./test_metrics" ]; then
+          echo "Running valgrind on test_metrics..."
+          valgrind --tool=memcheck \
+                   --leak-check=full \
+                   --show-leak-kinds=all \
+                   --track-origins=yes \
+                   --error-exitcode=1 \
+                   --suppressions=<(echo -e "{\n   ignore_dl_stuff\n   Memcheck:Leak\n   ...\n   obj:*/ld-*.so\n}") \
+                   ./test_metrics
+        fi
+        
+        echo "valgrind: No memory issues found"
+
+    - name: Upload static analysis results
+      uses: actions/upload-artifact@v4
+      if: failure()
+      with:
+        name: static-analysis-results
+        path: |
+          ./cppcheck_errors.txt
+          ./scan-build-results/
+        retention-days: 3
