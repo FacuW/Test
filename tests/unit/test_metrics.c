@@ -158,13 +158,13 @@ void test_init_monitoring_system(void)
     return;
 #endif
 
-    char test_dir[256];
+    char test_dir[MAX_FILENAME_LENGTH];
     snprintf(test_dir, sizeof(test_dir), "/tmp/monitoring_test_%d/", getpid());
     extern char* test_log_dir;
     char* old_test_log_dir = test_log_dir;
     test_log_dir = test_dir;
 
-    char rm_command[300];
+    char rm_command[MAX_COMMAND_LENGTH];
     snprintf(rm_command, sizeof(rm_command), "rm -rf %s", test_dir);
     system(rm_command);
 

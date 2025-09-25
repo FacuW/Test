@@ -37,7 +37,7 @@ void generate_filename(char* buffer, size_t size)
 }
 
 /**
- * @brief Función principal
+ * @brief
  */
 int main(int argc, char* argv[])
 {
@@ -77,11 +77,11 @@ int main(int argc, char* argv[])
     printf("=== Sistema de Monitoreo Básico ===\n");
     printf("Versión %s\n\n", MONITORING_VERSION);
 
-    // Configurar manejador de señales
+    // config manejador de señales
     signal(SIGINT, signal_handler);
     signal(SIGTERM, signal_handler);
 
-    // Inicializar el sistema de monitoreo
+    // Inicializar el sistema
     if (init_monitoring_system() != 0)
     {
         fprintf(stderr, "Error al inicializar el sistema de monitoreo\n");
@@ -111,9 +111,9 @@ int main(int argc, char* argv[])
     printf("Puerto Prometheus: %d\n", prometheus_port);
     printf("Presione Ctrl+C para detener\n\n");
 
-    // Bucle principal de recolección de métricas
+    // Bucle de recolección de métricas
     system_metrics_t metrics;
-    char filename[256];
+    char filename[MAX_FILENAME_LENGTH];
 
     while (running)
     {
@@ -148,15 +148,15 @@ int main(int argc, char* argv[])
             fprintf(stderr, "Error al recolectar métricas\n");
         }
 
-        // Esperar hasta el próximo intervalo
+        // Espera hasta el próximo intervalo
         sleep((unsigned int)interval);
     }
 
-    // Limpiar recursos
+    // Limpia recursos
     cleanup_prometheus();
     cleanup_monitoring_system();
 
-    printf("\n✅ Sistema de monitoreo detenido\n");
+    printf("\n Sistema de monitoreo detenido\n");
 
     return EXIT_SUCCESS;
 }

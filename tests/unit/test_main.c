@@ -42,7 +42,7 @@ void test_monitoring_constants(void)
 }
 
 /**
- * @brief Función principal para ejecutar los tests
+ * @brief 
  */
 int main(void)
 {

@@ -7,11 +7,22 @@
 #include <time.h>
 #include <unistd.h>
 
-// Constantes del proyecto
 #define MONITORING_VERSION "1.0.0"
 #define DEFAULT_LOG_DIR "/var/lib/monitoreo/"
 #define DEFAULT_INTERVAL 5
 #define DEFAULT_PROMETHEUS_PORT 8080
+
+// Buffer sizes
+#define MAX_FILENAME_LENGTH 256
+#define MAX_PATH_LENGTH 256
+#define MAX_LINE_LENGTH 256
+#define MAX_HTTP_RESPONSE_SIZE 8192
+#define MAX_COMMAND_LENGTH 300
+
+// Paths de archivos del sistema
+#define PROC_STAT_PATH "/proc/stat"
+#define PROC_LOADAVG_PATH "/proc/loadavg"
+#define PROC_MEMINFO_PATH "/proc/meminfo"
 
 // Estructuras para las métricas
 typedef struct
@@ -46,24 +57,24 @@ typedef struct
     load_metrics_t load;
 } system_metrics_t;
 
-// Funciones principales del sistema de monitoreo
+// Funciones principales
 int init_monitoring_system(void);
 int collect_metrics(system_metrics_t* metrics);
 int save_metrics_to_json(const system_metrics_t* metrics, const char* filepath);
 void cleanup_monitoring_system(void);
 
-// Funciones auxiliares para testing
+// Funciones para testing
 int read_cpu_metrics(cpu_metrics_t* cpu);
 int read_memory_metrics(memory_metrics_t* memory);
 int read_load_metrics(load_metrics_t* load);
 
-// NUEVAS FUNCIONES DE PROMETHEUS
+// Funciones para Prometheus
 int init_prometheus_metrics(void);
 int update_prometheus_metrics(const system_metrics_t* metrics);
 int start_prometheus_server(int port);
 void cleanup_prometheus(void);
 
-// Variable global para testing (puede sobrescribirse en tests)
+// Variable global para testing
 extern char* test_log_dir;
 
-#endif // MONITORING_H
+#endif

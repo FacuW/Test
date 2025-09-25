@@ -1,6 +1,6 @@
 /**
  * @file prometheus_metrics.c
- * @brief Implementación básica de métricas para Prometheus
+ * @brief Implementación de métricas para Prometheus y servidor HTTP
  */
 
 #include "monitoring.h"
@@ -11,7 +11,7 @@
 #include <string.h>
 #include <sys/socket.h>
 
-// Variables globales para métricas Prometheus
+// variables globales
 prom_gauge_t* prometheus_cpu_usage_percent = NULL;
 prom_gauge_t* prometheus_cpu_user_percent = NULL;
 prom_gauge_t* prometheus_cpu_system_percent = NULL;
@@ -76,8 +76,8 @@ static void* prometheus_server_thread_func(void* arg)
         return NULL;
     }
 
-    printf("🚀 Servidor de métricas Prometheus iniciado en puerto %d\n", port);
-    printf("📊 Métricas disponibles en: http://localhost:%d/metrics\n", port);
+    printf("OK: Servidor de métricas Prometheus iniciado en puerto %d\n", port);
+    printf("OK: Métricas disponibles en: http://localhost:%d/metrics\n", port);
 
     while (prometheus_server_running)
     {
@@ -102,8 +102,8 @@ static void* prometheus_server_thread_func(void* arg)
             should_free = 0;
         }
 
-        // Crear respuesta HTTP
-        char response[8192];
+        // Crear respuesta http
+        char response[MAX_HTTP_RESPONSE_SIZE];
         int response_len = snprintf(response, sizeof(response),
                                     "HTTP/1.1 200 OK\r\n"
                                     "Content-Type: text/plain; charset=utf-8\r\n"
@@ -113,7 +113,7 @@ static void* prometheus_server_thread_func(void* arg)
                                     "%s",
                                     strlen(metrics_output), metrics_output);
 
-        // Enviar respuesta
+        // enviar respuesta
         send(client_socket, response, (size_t)response_len, 0);
         close(client_socket);
 
@@ -181,7 +181,7 @@ int init_prometheus_metrics(void)
     prom_collector_registry_must_register_metric(prometheus_load_average_15m);
     prom_collector_registry_must_register_metric(prometheus_metrics_collected_total);
 
-    printf("✅ Métricas de Prometheus inicializadas correctamente\n");
+    printf("OK: Métricas de Prometheus inicializadas correctamente\n");
     return 0;
 }
 
@@ -223,7 +223,7 @@ int start_prometheus_server(int port)
 {
     if (prometheus_server_running)
     {
-        printf("⚠️  Servidor de Prometheus ya está ejecutándose\n");
+        printf("Warning: Servidor de Prometheus ya está ejecutándose\n");
         return 0;
     }
 
@@ -261,5 +261,5 @@ void cleanup_prometheus(void)
         pthread_join(prometheus_thread, NULL);
     }
 
-    printf("🧹 Limpieza de recursos de Prometheus completada\n");
+    printf("OK: Limpieza de recursos de Prometheus completada\n");
 }
