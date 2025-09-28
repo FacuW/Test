@@ -1,6 +1,6 @@
 /**
  * @file metrics.c
- * @brief Implementación de funciones para recolectar métricas del sistema
+ * @brief Implementación de funciones para recolectar métricas
  */
 
 #include "cjson/cJSON.h"
@@ -13,7 +13,7 @@
 #include <time.h>
 #include <unistd.h>
 
-// Variable global para testing (puede cambiar el directorio de logs)
+// Variable global para testing (se puede cambiar el directorio de logs)
 char* test_log_dir = NULL;
 
 /**
@@ -21,7 +21,7 @@ char* test_log_dir = NULL;
  */
 static int create_directory_recursive(const char* path)
 {
-    char tmp[256];
+    char tmp[MAX_PATH_LENGTH];
     char* p = NULL;
     size_t len;
 
@@ -53,7 +53,7 @@ static int create_directory_recursive(const char* path)
  */
 int read_cpu_metrics(cpu_metrics_t* cpu)
 {
-    FILE* file = fopen("/proc/stat", "r");
+    FILE* file = fopen(PROC_STAT_PATH, "r");
     if (!file)
     {
         perror("Error al abrir /proc/stat");
@@ -88,14 +88,14 @@ int read_cpu_metrics(cpu_metrics_t* cpu)
  */
 int read_memory_metrics(memory_metrics_t* memory)
 {
-    FILE* file = fopen("/proc/meminfo", "r");
+    FILE* file = fopen(PROC_MEMINFO_PATH, "r");
     if (!file)
     {
         perror("Error al abrir /proc/meminfo");
         return -1;
     }
 
-    char line[256];
+    char line[MAX_LINE_LENGTH];
     long mem_total = 0, mem_free = 0, buffers = 0, cached = 0;
 
     while (fgets(line, sizeof(line), file))
@@ -131,7 +131,7 @@ int read_memory_metrics(memory_metrics_t* memory)
  */
 int read_load_metrics(load_metrics_t* load)
 {
-    FILE* file = fopen("/proc/loadavg", "r");
+    FILE* file = fopen(PROC_LOADAVG_PATH, "r");
     if (!file)
     {
         perror("Error al abrir /proc/loadavg");
@@ -171,7 +171,7 @@ int init_monitoring_system(void)
 }
 
 /**
- * @brief Recolecta todas las métricas del sistema
+ * @brief Recolecta todas las métricas
  */
 int collect_metrics(system_metrics_t* metrics)
 {
@@ -199,14 +199,14 @@ int save_metrics_to_json(const system_metrics_t* metrics, const char* filepath)
         return -1;
 
     // Usar el filepath proporcionado o generar uno por defecto
-    char filename[256];
+    char filename[MAX_FILENAME_LENGTH];
     if (filepath && strlen(filepath) > 0)
     {
         snprintf(filename, sizeof(filename), "%s", filepath);
     }
     else
     {
-        // Generar nombre de archivo metrics-YYYYMMDD.log por defecto
+        // Generar nombre de archivo metrics-YYYYMMDD.log con la fecha actual
         time_t t = time(NULL);
         struct tm tm_info;
         localtime_r(&t, &tm_info);
@@ -251,15 +251,8 @@ int save_metrics_to_json(const system_metrics_t* metrics, const char* filepath)
     return 0;
 }
 
-/**
- * @brief Limpia recursos del sistema de monitoreo
- */
 void cleanup_monitoring_system(void)
 {
-    // Actualmente no hay recursos dinámicos que liberar
-}
-
-/* Dummy para evitar warning de unidad de traducción vacía */
-void metrics_dummy(void)
-{
+    // No resources to cleanup currently
+    // This function may be used in the future if it's necessary
 }
