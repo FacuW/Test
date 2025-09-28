@@ -54,7 +54,7 @@ runs:
         
         COVERAGE_RESULT=$(grep "TOTAL" $COVERAGE_LOG | awk '{print $NF}' | cut -d '%' -f 1)
         
-        if [ "$(echo "$COVERAGE_RESULT > 1" | bc)" -eq 1 ]; then
+        if [ "$(echo "$COVERAGE_RESULT >= 30" | bc)" -eq 1 ]; then
           echo "Coverage: $COVERAGE_RESULT%"
           exit 0
         else

@@ -1,27 +1,162 @@
-#include <cjson/cJSON.h>
+/**
+ * @file main.c
+ * @brief Programa principal del sistema de monitoreo
+ */
+
+#include "cjson/cJSON.h"
+#include "monitoring.h"
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <time.h>
+#include <unistd.h>
 
-int main(void)
+// Flag para controlar la ejecución del programa
+volatile sig_atomic_t running = 1;
+
+/**
+ * @brief Manejador de señales para terminar el programa de forma controlada
+ */
+void signal_handler(int sig)
 {
+    (void)sig; // Evitar warning de variable no usada
+    running = 0;
+}
 
-    cJSON* root = cJSON_CreateObject();
+/**
+ * @brief Genera el nombre de archivo para las métricas
+ */
+void generate_filename(char* buffer, size_t size)
+{
+    time_t now = time(NULL);
+    struct tm* tm_info = localtime(&now);
 
-    cJSON_AddStringToObject(root, "name", "Facundo");
-    cJSON_AddNumberToObject(root, "age", 26);
-    cJSON_AddBoolToObject(root, "is_student", 1);
+    snprintf(buffer, size, "%smetrics-%04d%02d%02d.log", DEFAULT_LOG_DIR, tm_info->tm_year + 1900, tm_info->tm_mon + 1,
+             tm_info->tm_mday);
+}
 
-    cJSON* hobbies = cJSON_CreateArray();
+/**
+ * @brief
+ */
+int main(int argc, char* argv[])
+{
+    int interval = DEFAULT_INTERVAL;
+    int prometheus_port = DEFAULT_PROMETHEUS_PORT;
 
-    cJSON_AddItemToArray(hobbies, cJSON_CreateString("playing guitar"));
-    cJSON_AddItemToArray(hobbies, cJSON_CreateString("watching movies"));
-    cJSON_AddItemToObject(root, "hobbies", hobbies);
+    // Procesar argumentos de línea de comandos
+    for (int i = 1; i < argc; i++)
+    {
+        if (strcmp(argv[i], "--interval") == 0 && i + 1 < argc)
+        {
+            interval = atoi(argv[i + 1]);
+            if (interval < 1)
+                interval = DEFAULT_INTERVAL;
+            i++;
+        }
+        else if (strcmp(argv[i], "--prometheus-port") == 0 && i + 1 < argc)
+        {
+            prometheus_port = atoi(argv[i + 1]);
+            if (prometheus_port < 1024 || prometheus_port > 65535)
+                prometheus_port = DEFAULT_PROMETHEUS_PORT;
+            i++;
+        }
+        else if (strcmp(argv[i], "--help") == 0)
+        {
+            printf("Uso: %s [opciones]\n", argv[0]);
+            printf("Opciones:\n");
+            printf("  --interval SEGUNDOS       Intervalo de recolección de métricas (por defecto: %d)\n",
+                   DEFAULT_INTERVAL);
+            printf("  --prometheus-port PUERTO  Puerto para servidor Prometheus (por defecto: %d)\n",
+                   DEFAULT_PROMETHEUS_PORT);
+            printf("  --help                     Mostrar esta ayuda\n");
+            return EXIT_SUCCESS;
+        }
+    }
 
-    char* json_string = cJSON_Print(root);
-    printf("%s\n", json_string);
+    printf("=== Sistema de Monitoreo Básico ===\n");
+    printf("Versión %s\n\n", MONITORING_VERSION);
 
-    cJSON_Delete(root);
-    free(json_string);
+    // config manejador de señales
+    signal(SIGINT, signal_handler);
+    signal(SIGTERM, signal_handler);
 
-    return 0;
+    // Inicializar el sistema
+    if (init_monitoring_system() != 0)
+    {
+        fprintf(stderr, "Error al inicializar el sistema de monitoreo\n");
+        return EXIT_FAILURE;
+    }
+
+    // Inicializar métricas de Prometheus
+    if (init_prometheus_metrics() != 0)
+    {
+        fprintf(stderr, "Error al inicializar métricas de Prometheus\n");
+        cleanup_monitoring_system();
+        return EXIT_FAILURE;
+    }
+
+    // Iniciar servidor HTTP de Prometheus
+    if (start_prometheus_server(prometheus_port) != 0)
+    {
+        fprintf(stderr, "Error al iniciar servidor de Prometheus\n");
+        cleanup_prometheus();
+        cleanup_monitoring_system();
+        return EXIT_FAILURE;
+    }
+
+    printf("Sistema de monitoreo iniciado.\n");
+    printf("Intervalo de recolección: %d segundos\n", interval);
+    printf("Directorio de logs: %s\n", DEFAULT_LOG_DIR);
+    printf("Puerto Prometheus: %d\n", prometheus_port);
+    printf("Presione Ctrl+C para detener\n\n");
+
+    // Bucle de recolección de métricas
+    system_metrics_t metrics;
+    char filename[MAX_FILENAME_LENGTH];
+
+    while (running)
+    {
+        // Generar nombre de archivo para las métricas
+        generate_filename(filename, sizeof(filename));
+
+        // Recolectar métricas
+        if (collect_metrics(&metrics) == 0)
+        {
+            // Guardar métricas en formato JSON (NDJSON)
+            if (save_metrics_to_json(&metrics, filename) == 0)
+            {
+                printf("Métricas recolectadas y guardadas en %s\n", filename);
+            }
+            else
+            {
+                fprintf(stderr, "Error al guardar métricas\n");
+            }
+
+            // Actualizar métricas de Prometheus
+            if (update_prometheus_metrics(&metrics) == 0)
+            {
+                printf("Métricas de Prometheus actualizadas\n");
+            }
+            else
+            {
+                fprintf(stderr, "Error al actualizar métricas de Prometheus\n");
+            }
+        }
+        else
+        {
+            fprintf(stderr, "Error al recolectar métricas\n");
+        }
+
+        // Espera hasta el próximo intervalo
+        sleep((unsigned int)interval);
+    }
+
+    // Limpia recursos
+    cleanup_prometheus();
+    cleanup_monitoring_system();
+
+    printf("\n Sistema de monitoreo detenido\n");
+
+    return EXIT_SUCCESS;
 }

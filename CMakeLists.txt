@@ -19,11 +19,14 @@ endif()
 # Buscar paquetes instalados por Conan
 find_package(cJSON REQUIRED)
 
+# Buscar pthread (requerido por prometheus)
+find_package(Threads REQUIRED)
+
 # Define el estándar de C
 set(CMAKE_C_STANDARD 17)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
-# Add the `src` directory, where the C source files are located
+# Incluir TODOS los archivos fuente (incluyendo prometheus_metrics.c)
 file(GLOB_RECURSE SOURCES "src/*.c")
 
 # Compilador flags
@@ -33,16 +36,25 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -pedantic -Wextra -Werror -Wconversion
 add_executable(${PROJECT_NAME} ${SOURCES})
 
 # Incluir directorios de headers
-target_include_directories(${PROJECT_NAME} PRIVATE include)
+target_include_directories(${PROJECT_NAME} PRIVATE 
+    include
+    /usr/local/include
+)
 
-# Linkear librerías
+# Linkear librerías básicas
 target_link_libraries(${PROJECT_NAME} cjson::cjson)
 
-# Si planeas usar prometheus en el futuro, descomenta estas líneas:
-# find_library(PROM_LIB prom)
-# if(PROM_LIB)
-#     target_link_libraries(${PROJECT_NAME} ${PROM_LIB})
-# endif()
+# Buscar y linkear prometheus
+find_library(PROM_LIB prom)
+if(PROM_LIB)
+    target_link_libraries(${PROJECT_NAME} ${PROM_LIB})
+    message(STATUS "Found prometheus library: ${PROM_LIB}")
+else()
+    message(FATAL_ERROR "Prometheus client library not found. Make sure you have compiled and installed prometheus-client-c")
+endif()
+
+# Linkear pthread (requerido por prometheus)
+target_link_libraries(${PROJECT_NAME} Threads::Threads)
 
 # Configuración para tests
 if (BUILD_TESTS)
