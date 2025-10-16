@@ -45,7 +45,7 @@ int cmd_status(shell_context_t* ctx) {
         snprintf(filepath, sizeof(filepath), "%s%s", DEFAULT_LOG_DIR, latest_file);
         
         // Usar tail para mostrar últimas líneas
-        execlp("tail", "tail", "-n", "5", filepath, NULL);
+        execlp("tail", "tail", "-n", "5", filepath, (char*)NULL);
         perror("Error en exec");
         exit(1);
     }
@@ -117,7 +117,7 @@ int cmd_psnode(shell_context_t* ctx) {
     if (pid == 0) {
         // Proceso hijo: ejecutar ps filtrado
         printf("Procesos relacionados con el nodo:\n");
-        execlp("sh", "sh", "-c", "ps aux | grep -E 'monitoreo|monitoring' | grep -v grep", NULL);
+        execlp("sh", "sh", "-c", "ps aux | grep -E 'monitoreo|monitoring' | grep -v grep", (char*)NULL);
         perror("Error en exec");
         exit(1);
     }

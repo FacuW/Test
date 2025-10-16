@@ -34,17 +34,17 @@ int shell_init(shell_context_t* ctx) {
         return -1;
     }
     
-    // Crear directorio de logs si no existe
-    struct stat st = {0};
-    if (stat("/var/log/monitoring", &st) == -1) {
-        if (mkdir("/var/log/monitoring", 0755) == -1) {
-            perror("Error creando directorio de logs");
-            close(ctx->pipe_fd[0]);
-            close(ctx->pipe_fd[1]);
-            pthread_mutex_destroy(&ctx->state_mutex);
-            return -1;
-        }
+  // Crear directorio de logs si no existe  
+struct stat st = {0};
+if (stat("/var/log/monitoreo", &st) == -1) {
+    if (mkdir("/var/log/monitoreo", 0755) == -1) {
+        perror("Error creando directorio de logs");
+        close(ctx->pipe_fd[0]);
+        close(ctx->pipe_fd[1]);
+        pthread_mutex_destroy(&ctx->state_mutex);
+        return -1;
     }
+}
     
     // Configurar manejador de señales
     signal(SIGINT, shell_signal_handler);
@@ -95,7 +95,7 @@ int shell_run(shell_context_t* ctx) {
         }
         else if (strcmp(command, "exit") == 0) {
             cmd_exit(ctx);
-            shell_running = 0;
+            break;  // ← CAMBIADO: usar break en lugar de shell_running = 0
         }
         else {
             printf("Comando desconocido: %s\n", command);
