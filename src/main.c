@@ -5,6 +5,7 @@
 
 #include "cjson/cJSON.h"
 #include "monitoring.h"
+#include "shell.h"  // ← AGREGADO
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -43,6 +44,7 @@ int main(int argc, char* argv[])
 {
     int interval = DEFAULT_INTERVAL;
     int prometheus_port = DEFAULT_PROMETHEUS_PORT;
+    int use_shell = 1;  // ← AGREGADO: por defecto usa shell
 
     // Procesar argumentos de línea de comandos
     for (int i = 1; i < argc; i++)
@@ -61,6 +63,11 @@ int main(int argc, char* argv[])
                 prometheus_port = DEFAULT_PROMETHEUS_PORT;
             i++;
         }
+        // ← AGREGADO: opción para deshabilitar shell
+        else if (strcmp(argv[i], "--no-shell") == 0)
+        {
+            use_shell = 0;
+        }
         else if (strcmp(argv[i], "--help") == 0)
         {
             printf("Uso: %s [opciones]\n", argv[0]);
@@ -69,6 +76,7 @@ int main(int argc, char* argv[])
                    DEFAULT_INTERVAL);
             printf("  --prometheus-port PUERTO  Puerto para servidor Prometheus (por defecto: %d)\n",
                    DEFAULT_PROMETHEUS_PORT);
+            printf("  --no-shell                Ejecutar sin shell interactivo\n");  // ← AGREGADO
             printf("  --help                     Mostrar esta ayuda\n");
             return EXIT_SUCCESS;
         }
@@ -109,47 +117,74 @@ int main(int argc, char* argv[])
     printf("Intervalo de recolección: %d segundos\n", interval);
     printf("Directorio de logs: %s\n", DEFAULT_LOG_DIR);
     printf("Puerto Prometheus: %d\n", prometheus_port);
-    printf("Presione Ctrl+C para detener\n\n");
 
-    // Bucle de recolección de métricas
-    system_metrics_t metrics;
-    char filename[MAX_FILENAME_LENGTH];
-
-    while (running)
+    // ← BIFURCACIÓN: usar shell o modo automático
+    if (use_shell)
     {
-        // Generar nombre de archivo para las métricas
-        generate_filename(filename, sizeof(filename));
-
-        // Recolectar métricas
-        if (collect_metrics(&metrics) == 0)
+        // ===== CÓDIGO NUEVO: MODO SHELL =====
+        printf("Modo: Shell interactivo\n");
+        printf("Prometheus activo en puerto %d\n\n", prometheus_port);
+        
+        shell_context_t shell_ctx;
+        if (shell_init(&shell_ctx) != 0)
         {
-            // Guardar métricas en formato JSON (NDJSON)
-            if (save_metrics_to_json(&metrics, filename) == 0)
+            fprintf(stderr, "Error al inicializar el shell\n");
+            cleanup_prometheus();
+            cleanup_monitoring_system();
+            return EXIT_FAILURE;
+        }
+        
+        // Ejecutar shell (bloqueante)
+        shell_run(&shell_ctx);
+        
+        // Limpieza del shell
+        shell_cleanup(&shell_ctx);
+    }
+    else
+    {
+        // ===== CÓDIGO ORIGINAL: MODO AUTOMÁTICO =====
+        printf("Modo: Automático (sin shell)\n");
+        printf("Presione Ctrl+C para detener\n\n");
+
+        system_metrics_t metrics;
+        char filename[MAX_FILENAME_LENGTH];
+
+        while (running)
+        {
+            // Generar nombre de archivo para las métricas
+            generate_filename(filename, sizeof(filename));
+
+            // Recolectar métricas
+            if (collect_metrics(&metrics) == 0)
             {
-                printf("Métricas recolectadas y guardadas en %s\n", filename);
+                // Guardar métricas en formato JSON (NDJSON)
+                if (save_metrics_to_json(&metrics, filename) == 0)
+                {
+                    printf("Métricas recolectadas y guardadas en %s\n", filename);
+                }
+                else
+                {
+                    fprintf(stderr, "Error al guardar métricas\n");
+                }
+
+                // Actualizar métricas de Prometheus
+                if (update_prometheus_metrics(&metrics) == 0)
+                {
+                    printf("Métricas de Prometheus actualizadas\n");
+                }
+                else
+                {
+                    fprintf(stderr, "Error al actualizar métricas de Prometheus\n");
+                }
             }
             else
             {
-                fprintf(stderr, "Error al guardar métricas\n");
+                fprintf(stderr, "Error al recolectar métricas\n");
             }
 
-            // Actualizar métricas de Prometheus
-            if (update_prometheus_metrics(&metrics) == 0)
-            {
-                printf("Métricas de Prometheus actualizadas\n");
-            }
-            else
-            {
-                fprintf(stderr, "Error al actualizar métricas de Prometheus\n");
-            }
+            // Espera hasta el próximo intervalo
+            sleep((unsigned int)interval);
         }
-        else
-        {
-            fprintf(stderr, "Error al recolectar métricas\n");
-        }
-
-        // Espera hasta el próximo intervalo
-        sleep((unsigned int)interval);
     }
 
     // Limpia recursos
