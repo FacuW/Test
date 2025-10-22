@@ -30,8 +30,9 @@ jobs:
             -   name: Run documentation check
                 uses: ./.github/actions/documentation  
             
+            -   name: Run static analysis
+                uses: ./.github/actions/static-analysis
+            
             -   name: Run tests and coverage 
                 uses: ./.github/actions/coverage
 
-            -   name: Run static analysis
-                uses: ./.github/actions/static-analysis
