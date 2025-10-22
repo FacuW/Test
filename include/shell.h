@@ -9,16 +9,18 @@
 #define SHELL_LOG_PATH "/var/log/monitoreo/shell.log"
 
 // Estados del sistema de monitoreo
-typedef enum {
+typedef enum
+{
     MONITOR_STOPPED,
     MONITOR_RUNNING
 } monitor_state_t;
 
 // Estructura de control del shell
-typedef struct {
+typedef struct
+{
     monitor_state_t state;
     pthread_mutex_t state_mutex;
-    int pipe_fd[2];  // IPC con proceso de monitoreo
+    int pipe_fd[2]; // IPC con proceso de monitoreo
     pthread_t monitor_thread;
 } shell_context_t;
 

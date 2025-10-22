@@ -192,9 +192,9 @@ int main(void)
     RUN_TEST(test_read_load_metrics);
     RUN_TEST(test_collect_metrics);
     RUN_TEST(test_save_metrics_to_json);
-    RUN_TEST(test_save_metrics_to_json_null);        
-    RUN_TEST(test_collect_metrics_null);             
-    RUN_TEST(test_cleanup_monitoring_system);       
+    RUN_TEST(test_save_metrics_to_json_null);
+    RUN_TEST(test_collect_metrics_null);
+    RUN_TEST(test_cleanup_monitoring_system);
     RUN_TEST(test_init_monitoring_system);
 
     return UNITY_END();

@@ -42,7 +42,7 @@ void test_monitoring_constants(void)
 }
 
 /**
- * @brief 
+ * @brief
  */
 int main(void)
 {

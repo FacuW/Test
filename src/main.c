@@ -5,7 +5,7 @@
 
 #include "cjson/cJSON.h"
 #include "monitoring.h"
-#include "shell.h"  // ← AGREGADO
+#include "shell.h" // ← AGREGADO
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -44,7 +44,7 @@ int main(int argc, char* argv[])
 {
     int interval = DEFAULT_INTERVAL;
     int prometheus_port = DEFAULT_PROMETHEUS_PORT;
-    int use_shell = 1;  // ← AGREGADO: por defecto usa shell
+    int use_shell = 1; // ← AGREGADO: por defecto usa shell
 
     // Procesar argumentos de línea de comandos
     for (int i = 1; i < argc; i++)
@@ -76,7 +76,7 @@ int main(int argc, char* argv[])
                    DEFAULT_INTERVAL);
             printf("  --prometheus-port PUERTO  Puerto para servidor Prometheus (por defecto: %d)\n",
                    DEFAULT_PROMETHEUS_PORT);
-            printf("  --no-shell                Ejecutar sin shell interactivo\n");  // ← AGREGADO
+            printf("  --no-shell                Ejecutar sin shell interactivo\n"); // ← AGREGADO
             printf("  --help                     Mostrar esta ayuda\n");
             return EXIT_SUCCESS;
         }
@@ -124,7 +124,7 @@ int main(int argc, char* argv[])
         // ===== CÓDIGO NUEVO: MODO SHELL =====
         printf("Modo: Shell interactivo\n");
         printf("Prometheus activo en puerto %d\n\n", prometheus_port);
-        
+
         shell_context_t shell_ctx;
         if (shell_init(&shell_ctx) != 0)
         {
@@ -133,10 +133,10 @@ int main(int argc, char* argv[])
             cleanup_monitoring_system();
             return EXIT_FAILURE;
         }
-        
+
         // Ejecutar shell (bloqueante)
         shell_run(&shell_ctx);
-        
+
         // Limpieza del shell
         shell_cleanup(&shell_ctx);
     }
