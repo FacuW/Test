@@ -40,12 +40,17 @@ int shell_init(shell_context_t* ctx)
     }
 
     // Crear directorio de logs si no existe
-    // En CI puede fallar por permisos, lo ignoramos
     struct stat st = {0};
     if (stat("/var/log/monitoreo", &st) == -1)
     {
+        // Intentar crear el directorio
         mkdir("/var/log/monitoreo", 0755);
-        // No verificamos el resultado, si falla por permisos continuamos
+        // Intentamos de nuevo ver si existe (puede haber sido creado por otro proceso)
+        if (stat("/var/log/monitoreo", &st) == -1)
+        {
+            // Si aún no existe, advertir pero continuar (para CI)
+            fprintf(stderr, "Warning: No se pudo crear /var/log/monitoreo, logging deshabilitado\n");
+        }
     }
 
     // Configurar manejador de señales
