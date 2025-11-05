@@ -59,8 +59,9 @@ target_link_libraries(test_metrics
     cjson::cjson
 )
 
-# ========== AGREGADO: Test del shell ==========
-add_executable(test_shell unit/test_shell.c
+# Test del shell
+add_executable(test_shell 
+    unit/test_shell.c
     ${CMAKE_SOURCE_DIR}/src/shell.c
     ${CMAKE_SOURCE_DIR}/src/shell_commands.c
     ${CMAKE_SOURCE_DIR}/src/shell_ipc.c
@@ -80,4 +81,4 @@ target_link_libraries(test_shell
 # Add tests to CTest
 add_test(NAME unit_tests COMMAND test_main)
 add_test(NAME metrics_tests COMMAND test_metrics)
-add_test(NAME shell_tests COMMAND test_shell)  # ← AGREGADO
+add_test(NAME shell_tests COMMAND test_shell)
