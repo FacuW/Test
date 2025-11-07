@@ -9,6 +9,15 @@ runs:
       run: |
         sudo apt-get install -y gcovr bc
 
+    - name: Create required directories
+      shell: bash
+      run: |
+        sudo mkdir -p /var/lib/monitoreo
+        sudo mkdir -p /var/log/monitoreo
+        sudo chmod 777 /var/lib/monitoreo
+        sudo chmod 777 /var/log/monitoreo
+        echo "Directories created for testing"
+
     - name: "Build with coverage"
       shell: bash
       run: |
@@ -54,7 +63,7 @@ runs:
         
         COVERAGE_RESULT=$(grep "TOTAL" $COVERAGE_LOG | awk '{print $NF}' | cut -d '%' -f 1)
         
-        if [ "$(echo "$COVERAGE_RESULT >= 30" | bc)" -eq 1 ]; then
+        if [ "$(echo "$COVERAGE_RESULT >= 35" | bc)" -eq 1 ]; then
           echo "Coverage: $COVERAGE_RESULT%"
           exit 0
         else
