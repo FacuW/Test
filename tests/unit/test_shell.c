@@ -2,11 +2,15 @@
 #include "unity.h"
 #include <pthread.h>
 #include <string.h>
-#include <unistd.h>
 #include <sys/wait.h>
+#include <unistd.h>
 
-void setUp(void) {}
-void tearDown(void) {}
+void setUp(void)
+{
+}
+void tearDown(void)
+{
+}
 
 // creación de pipe
 void test_pipe_creation(void)
@@ -14,8 +18,9 @@ void test_pipe_creation(void)
     shell_context_t ctx;
 
     int result = shell_init(&ctx);
-    
-    if (result != 0) {
+
+    if (result != 0)
+    {
         TEST_IGNORE_MESSAGE("shell_init failed - permissions issue");
         return;
     }
@@ -52,8 +57,9 @@ void test_mutex_initialization(void)
     shell_context_t ctx;
 
     int result = shell_init(&ctx);
-    
-    if (result != 0) {
+
+    if (result != 0)
+    {
         TEST_IGNORE_MESSAGE("shell_init failed - permissions issue");
         return;
     }
@@ -73,8 +79,9 @@ void test_initial_monitor_state(void)
     shell_context_t ctx;
 
     int result = shell_init(&ctx);
-    
-    if (result != 0) {
+
+    if (result != 0)
+    {
         TEST_IGNORE_MESSAGE("shell_init failed - permissions issue");
         return;
     }
@@ -88,8 +95,9 @@ void test_initial_monitor_state(void)
 void test_state_change_with_mutex(void)
 {
     shell_context_t ctx;
-    
-    if (shell_init(&ctx) != 0) {
+
+    if (shell_init(&ctx) != 0)
+    {
         TEST_IGNORE_MESSAGE("shell_init failed - permissions issue");
         return;
     }
@@ -101,7 +109,7 @@ void test_state_change_with_mutex(void)
 
     TEST_ASSERT_EQUAL_INT(MONITOR_RUNNING, state);
 
-    usleep(10000);  // 10ms
+    usleep(10000); // 10ms
     shell_cleanup(&ctx);
 }
 
@@ -109,8 +117,9 @@ void test_state_change_with_mutex(void)
 void test_cmd_status_creates_process(void)
 {
     shell_context_t ctx;
-    
-    if (shell_init(&ctx) != 0) {
+
+    if (shell_init(&ctx) != 0)
+    {
         TEST_IGNORE_MESSAGE("shell_init failed - permissions issue");
         return;
     }
@@ -125,8 +134,9 @@ void test_cmd_status_creates_process(void)
 void test_cmd_psnode_creates_process(void)
 {
     shell_context_t ctx;
-    
-    if (shell_init(&ctx) != 0) {
+
+    if (shell_init(&ctx) != 0)
+    {
         TEST_IGNORE_MESSAGE("shell_init failed - permissions issue");
         return;
     }
@@ -141,8 +151,9 @@ void test_cmd_psnode_creates_process(void)
 void test_cmd_start_changes_state(void)
 {
     shell_context_t ctx;
-    
-    if (shell_init(&ctx) != 0) {
+
+    if (shell_init(&ctx) != 0)
+    {
         TEST_IGNORE_MESSAGE("shell_init failed - permissions issue");
         return;
     }
@@ -159,7 +170,7 @@ void test_cmd_start_changes_state(void)
     TEST_ASSERT_EQUAL_INT(MONITOR_RUNNING, state);
 
     cmd_stop(&ctx);
-    usleep(10000);  // 10ms - dar tiempo para que el thread termine
+    usleep(10000); // 10ms - dar tiempo para que el thread termine
     shell_cleanup(&ctx);
 }
 
@@ -167,8 +178,9 @@ void test_cmd_start_changes_state(void)
 void test_cmd_stop_stops_thread(void)
 {
     shell_context_t ctx;
-    
-    if (shell_init(&ctx) != 0) {
+
+    if (shell_init(&ctx) != 0)
+    {
         TEST_IGNORE_MESSAGE("shell_init failed - permissions issue");
         return;
     }
@@ -185,7 +197,7 @@ void test_cmd_stop_stops_thread(void)
 
     TEST_ASSERT_EQUAL_INT(MONITOR_STOPPED, state);
 
-    usleep(10000);  // 10ms - dar tiempo para que el thread termine
+    usleep(10000); // 10ms - dar tiempo para que el thread termine
     shell_cleanup(&ctx);
 }
 
@@ -193,8 +205,9 @@ void test_cmd_stop_stops_thread(void)
 void test_pipe_used_in_stop(void)
 {
     shell_context_t ctx;
-    
-    if (shell_init(&ctx) != 0) {
+
+    if (shell_init(&ctx) != 0)
+    {
         TEST_IGNORE_MESSAGE("shell_init failed - permissions issue");
         return;
     }
@@ -205,7 +218,7 @@ void test_pipe_used_in_stop(void)
     int result = cmd_stop(&ctx);
     TEST_ASSERT_EQUAL_INT(0, result);
 
-    usleep(10000);  // 10ms - dar tiempo para que el thread termine
+    usleep(10000); // 10ms - dar tiempo para que el thread termine
     shell_cleanup(&ctx);
 }
 

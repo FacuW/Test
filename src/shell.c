@@ -136,7 +136,7 @@ void shell_cleanup(shell_context_t* ctx)
     // CRÍTICO: Asegurar que el mutex está libre antes de destruir
     pthread_mutex_lock(&ctx->state_mutex);
     pthread_mutex_unlock(&ctx->state_mutex);
-    
+
     // Ahora sí destruir
     pthread_mutex_destroy(&ctx->state_mutex);
 
