@@ -44,7 +44,7 @@ int shell_init(shell_context_t* ctx)
     if (stat("/var/log/monitoreo", &st) == -1)
     {
         // Intentar crear el directorio
-        mkdir("/var/log/monitoreo", 0755);
+        mkdir("/var/log/monitoreo", DIR_PERMISSIONS);
         // Intentamos de nuevo ver si existe (puede haber sido creado por otro proceso)
         if (stat("/var/log/monitoreo", &st) == -1)
         {
@@ -127,20 +127,19 @@ void shell_cleanup(shell_context_t* ctx)
     if (!ctx)
         return;
 
-    // Detener monitoreo si está activo
-    if (ctx->state == MONITOR_RUNNING)
-    {
-        cmd_stop(ctx);
-    }
+    // Cerrar pipes
+    if (ctx->pipe_fd[0] > 0)
+        close(ctx->pipe_fd[0]);
+    if (ctx->pipe_fd[1] > 0)
+        close(ctx->pipe_fd[1]);
 
-    // Cerrar pipe
-    close(ctx->pipe_fd[0]);
-    close(ctx->pipe_fd[1]);
-
-    // Destruir mutex
+    // CRÍTICO: Asegurar que el mutex está libre antes de destruir
+    pthread_mutex_lock(&ctx->state_mutex);
+    pthread_mutex_unlock(&ctx->state_mutex);
+    
+    // Ahora sí destruir
     pthread_mutex_destroy(&ctx->state_mutex);
 
-    shell_log_command("SHELL_CLEANUP");
     printf("Shell terminado\n");
 }
 

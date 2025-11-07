@@ -53,7 +53,7 @@ int cmd_status(shell_context_t* ctx)
         snprintf(filepath, sizeof(filepath), "%s%s", DEFAULT_LOG_DIR, latest_file);
 
         // Usar tail para mostrar últimas líneas
-        execlp("tail", "tail", "-n", "5", filepath, (char*)NULL);
+        execlp("tail", "tail", "-n", TAIL_LINES_STR, filepath, (char*)NULL);
         perror("Error en exec");
         exit(1);
     }

@@ -59,7 +59,7 @@ int main(int argc, char* argv[])
         else if (strcmp(argv[i], "--prometheus-port") == 0 && i + 1 < argc)
         {
             prometheus_port = atoi(argv[i + 1]);
-            if (prometheus_port < 1024 || prometheus_port > 65535)
+            if (prometheus_port < MIN_VALID_PORT || prometheus_port > MAX_VALID_PORT)
                 prometheus_port = DEFAULT_PROMETHEUS_PORT;
             i++;
         }

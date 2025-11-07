@@ -24,6 +24,17 @@
 #define PROC_LOADAVG_PATH "/proc/loadavg"
 #define PROC_MEMINFO_PATH "/proc/meminfo"
 
+// para evitar magic numbers
+#define MIN_VALID_PORT 1024
+#define MAX_VALID_PORT 65535
+#define LISTEN_QUEUE_SIZE 5
+#define BYTES_PER_KB 1024
+#define CPU_STAT_FIELDS_COUNT 8
+#define TAIL_LINES_DEFAULT 5
+#define TAIL_LINES_STR "5"
+#define DIR_PERMISSIONS 0755
+#define THREAD_STARTUP_DELAY_US 100000
+
 // Estructuras para las métricas
 typedef struct
 {

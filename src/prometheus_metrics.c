@@ -69,7 +69,7 @@ static void* prometheus_server_thread_func(void* arg)
     }
 
     // Listen
-    if (listen(server_socket, 5) < 0)
+    if (listen(server_socket, LISTEN_QUEUE_SIZE) < 0)
     {
         perror("Error en listen");
         close(server_socket);
@@ -204,9 +204,9 @@ int update_prometheus_metrics(const system_metrics_t* metrics)
     prom_gauge_set(prometheus_cpu_system_percent, metrics->cpu.system, NULL);
 
     // Actualizar métricas de memoria (convertir de KB a bytes)
-    prom_gauge_set(prometheus_memory_total_bytes, (double)metrics->memory.total * 1024.0, NULL);
-    prom_gauge_set(prometheus_memory_free_bytes, (double)metrics->memory.free * 1024.0, NULL);
-    prom_gauge_set(prometheus_memory_used_bytes, (double)metrics->memory.used * 1024.0, NULL);
+    prom_gauge_set(prometheus_memory_total_bytes, (double)metrics->memory.total * (double)BYTES_PER_KB, NULL);
+    prom_gauge_set(prometheus_memory_free_bytes, (double)metrics->memory.free * (double)BYTES_PER_KB, NULL);
+    prom_gauge_set(prometheus_memory_used_bytes, (double)metrics->memory.used * (double)BYTES_PER_KB, NULL);
 
     // Actualizar métricas de load average
     prom_gauge_set(prometheus_load_average_1m, metrics->load.load_1m, NULL);
