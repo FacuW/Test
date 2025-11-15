@@ -42,4 +42,10 @@ int shell_log_command(const char* command);
 // Thread de monitoreo
 void* monitor_thread_func(void* arg);
 
+// Comando para ejecutar comandos externos
+int cmd_exec(shell_context_t* ctx, const char* command);
+
+// Parser para detectar pipes
+int parse_and_execute_pipeline(shell_context_t* ctx, const char* command_line);
+
 #endif
