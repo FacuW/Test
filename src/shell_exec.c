@@ -8,7 +8,7 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-// Whitelist de comandos permitidos (seguridad)
+// whitelist de comandos permitidos (seguridad)
 static const char* allowed_commands[] = {"ls",   "cat",    "grep", "head", "tail", "wc",     "echo", "pwd",
                                          "date", "whoami", "ps",   "df",   "free", "uptime", NULL};
 
