@@ -43,12 +43,9 @@ int shell_init(shell_context_t* ctx)
     struct stat st = {0};
     if (stat("/var/log/monitoreo", &st) == -1)
     {
-        // Intentar crear el directorio
         mkdir("/var/log/monitoreo", DIR_PERMISSIONS);
-        // Intentamos de nuevo ver si existe (puede haber sido creado por otro proceso)
         if (stat("/var/log/monitoreo", &st) == -1)
         {
-            // Si aún no existe, advertir pero continuar (para CI)
             fprintf(stderr, "Warning: No se pudo crear /var/log/monitoreo, logging deshabilitado\n");
         }
     }
@@ -67,7 +64,9 @@ int shell_run(shell_context_t* ctx)
     char command[MAX_COMMAND_LENGTH];
 
     printf("\n=== Shell de Monitoreo ===\n");
-    printf("Comandos disponibles: status, start, stop, psnode, exit\n\n");
+    printf("Comandos internos: status, start, stop, psnode, exit\n");
+    printf("Comandos externos: ls, cat, grep, ps, etc. (ver whitelist con 'exec')\n");
+    printf("Soporte de pipes: ls | grep test\n\n");
 
     while (shell_running)
     {
@@ -111,11 +110,26 @@ int shell_run(shell_context_t* ctx)
         else if (strcmp(command, "exit") == 0)
         {
             cmd_exit(ctx);
-            break; // ← CAMBIADO: usar break en lugar de shell_running = 0
+            break;
+        }
+        else if (strncmp(command, "exec ", 5) == 0)
+        {
+            // Comando exec explícito
+            cmd_exec(ctx, command + 5);
+        }
+        else if (strchr(command, '|') != NULL)
+        {
+            // Detectar pipe y ejecutar pipeline
+            parse_and_execute_pipeline(ctx, command);
         }
         else
         {
-            printf("Comando desconocido: %s\n", command);
+            // Intentar ejecutar como comando externo
+            if (cmd_exec(ctx, command) != 0)
+            {
+                printf("Comando desconocido: %s\n", command);
+                printf("Comandos disponibles: status, start, stop, psnode, exit, exec\n");
+            }
         }
     }
 
