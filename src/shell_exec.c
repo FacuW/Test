@@ -67,8 +67,8 @@ int cmd_exec(shell_context_t* ctx, const char* command)
     cmd_copy[sizeof(cmd_copy) - 1] = '\0';
 
     // Tokenizar
-    char* args[64]; // Máximo 64 argumentos
-    int argc = tokenize_command(cmd_copy, args, 64);
+    char* args[MAX_ARGS_PER_COMMAND] ; // Máximo 64 argumentos
+    int argc = tokenize_command(cmd_copy, args, MAX_ARGS_PER_COMMAND);
 
     if (argc == 0)
     {
@@ -177,11 +177,11 @@ int parse_and_execute_pipeline(shell_context_t* ctx, const char* command_line)
     cmd_copy[sizeof(cmd_copy) - 1] = '\0';
 
     // Dividir por pipes
-    char* commands[10]; // Máximo 10 comandos en pipeline
+    char* commands[MAX_COMMANDS_IN_PIPELINE]; // Máximo 10 comandos en pipeline
     int num_commands = 0;
 
     char* token = strtok(cmd_copy, "|");
-    while (token != NULL && num_commands < 10)
+    while (token != NULL && num_commands < MAX_COMMANDS_IN_PIPELINE)
     {
         commands[num_commands++] = trim(token);
         token = strtok(NULL, "|");
@@ -194,8 +194,8 @@ int parse_and_execute_pipeline(shell_context_t* ctx, const char* command_line)
         strncpy(cmd_check, commands[i], sizeof(cmd_check) - 1);
         cmd_check[sizeof(cmd_check) - 1] = '\0';
 
-        char* args[64];
-        tokenize_command(cmd_check, args, 64);
+        char* args[MAX_ARGS_PER_COMMAND];
+        tokenize_command(cmd_check, args, MAX_ARGS_PER_COMMAND);
 
         if (!is_command_allowed(args[0]))
         {
@@ -205,7 +205,7 @@ int parse_and_execute_pipeline(shell_context_t* ctx, const char* command_line)
     }
 
     // Crear pipes
-    int pipes[9][2]; // Máximo 9 pipes para 10 comandos
+    int pipes[MAX_PIPES_IN_PIPELINE][2]; // Máximo 9 pipes para 10 comandos
     for (int i = 0; i < num_commands - 1; i++)
     {
         if (pipe(pipes[i]) == -1)

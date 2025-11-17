@@ -41,10 +41,10 @@ int shell_init(shell_context_t* ctx)
 
     // Crear directorio de logs si no existe
     struct stat st = {0};
-    if (stat("/var/log/monitoreo", &st) == -1)
+    if (stat("SHELL_LOG_DIR", &st) == -1)
     {
-        mkdir("/var/log/monitoreo", DIR_PERMISSIONS);
-        if (stat("/var/log/monitoreo", &st) == -1)
+        mkdir("SHELL_LOG_DIR", DIR_PERMISSIONS);
+        if (stat("SHELL_LOG_DIR", &st) == -1)
         {
             fprintf(stderr, "Warning: No se pudo crear /var/log/monitoreo, logging deshabilitado\n");
         }

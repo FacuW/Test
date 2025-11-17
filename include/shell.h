@@ -5,8 +5,11 @@
 #include <pthread.h>
 
 #define SHELL_PROMPT "monitoring> "
-// ← ELIMINADO: #define MAX_COMMAND_LENGTH 256 (ya está en monitoring.h)
 #define SHELL_LOG_PATH "/var/log/monitoreo/shell.log"
+#define SHELL_LOG_DIR "/var/log/monitoreo"
+#define MAX_ARGS_PER_COMMAND 64
+#define MAX_COMMANDS_IN_PIPELINE 10
+#define MAX_PIPES_IN_PIPELINE 9
 
 // Estados del sistema de monitoreo
 typedef enum
