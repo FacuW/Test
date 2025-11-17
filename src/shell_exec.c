@@ -1,16 +1,37 @@
-// soporte para comandos externos como ls, cat y grep
-
 #include "shell.h"
 #include <ctype.h>
+#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
-// whitelist de comandos permitidos (seguridad)
+// Whitelist de comandos permitidos (seguridad)
 static const char* allowed_commands[] = {"ls",   "cat",    "grep", "head", "tail", "wc",     "echo", "pwd",
                                          "date", "whoami", "ps",   "df",   "free", "uptime", NULL};
+
+/**
+ * @brief Elimina espacios en blanco al inicio y final de una cadena
+ */
+static char* trim(char* str)
+{
+    // Eliminar espacios al inicio
+    while (isspace((unsigned char)*str))
+        str++;
+
+    if (*str == 0)
+        return str;
+
+    // Eliminar espacios al final
+    char* end = str + strlen(str) - 1;
+    while (end > str && isspace((unsigned char)*end))
+        end--;
+
+    *(end + 1) = '\0';
+    return str;
+}
 
 /**
  * @brief Verifica si un comando está en la whitelist
@@ -49,15 +70,184 @@ static int tokenize_command(char* command, char** args, int max_args)
 }
 
 /**
+ * @brief Parsea comando con redirección (ej: "ls -l > file.txt")
+ * @param command Comando completo
+ * @param cmd_part Buffer para la parte del comando (antes de >)
+ * @param file_part Buffer para el nombre del archivo (después de >)
+ * @param append 1 si es >>, 0 si es >
+ * @return 0 en éxito, -1 en error
+ */
+static int parse_redirection(const char* command, char* cmd_part, char* file_part, int* append)
+{
+    const char* redirect_pos = strstr(command, ">>");
+
+    if (redirect_pos != NULL)
+    {
+        // Redirección con append (>>)
+        *append = 1;
+
+        // Copiar parte del comando
+        size_t cmd_len = (size_t)(redirect_pos - command);
+        strncpy(cmd_part, command, cmd_len);
+        cmd_part[cmd_len] = '\0';
+
+        // Copiar nombre del archivo (saltar ">>")
+        strncpy(file_part, redirect_pos + 2, MAX_COMMAND_LENGTH - 1);
+        file_part[MAX_COMMAND_LENGTH - 1] = '\0';
+    }
+    else
+    {
+        redirect_pos = strchr(command, '>');
+
+        if (redirect_pos == NULL)
+        {
+            return -1;
+        }
+
+        // Redirección normal (>)
+        *append = 0;
+
+        // Copiar parte del comando
+        size_t cmd_len = (size_t)(redirect_pos - command);
+        strncpy(cmd_part, command, cmd_len);
+        cmd_part[cmd_len] = '\0';
+
+        // Copiar nombre del archivo (saltar ">")
+        strncpy(file_part, redirect_pos + 1, MAX_COMMAND_LENGTH - 1);
+        file_part[MAX_COMMAND_LENGTH - 1] = '\0';
+    }
+
+    return 0;
+}
+
+/**
+ * @brief Ejecuta un comando con redirección de salida
+ * @param ctx Contexto del shell
+ * @param command Comando con redirección (ej: "ls -l > file.txt")
+ * @return 0 en éxito, -1 en error
+ */
+int execute_with_redirection(shell_context_t* ctx, const char* command)
+{
+    (void)ctx;
+
+    char cmd_part[MAX_COMMAND_LENGTH];
+    char file_part[MAX_COMMAND_LENGTH];
+    int append = 0;
+
+    if (parse_redirection(command, cmd_part, file_part, &append) != 0)
+    {
+        printf("Error parsing redirection\n");
+        return -1;
+    }
+
+    // Trim ambas partes
+    char* cmd_trimmed = trim(cmd_part);
+    char* file_trimmed = trim(file_part);
+
+    // Verificar que el archivo no esté vacío
+    if (strlen(file_trimmed) == 0)
+    {
+        printf("Error: no output file specified\n");
+        return -1;
+    }
+
+    // Tokenizar comando
+    char cmd_copy[MAX_COMMAND_LENGTH];
+    strncpy(cmd_copy, cmd_trimmed, sizeof(cmd_copy) - 1);
+    cmd_copy[sizeof(cmd_copy) - 1] = '\0';
+
+    char* args[64];
+    int argc = tokenize_command(cmd_copy, args, 64);
+
+    if (argc == 0)
+    {
+        printf("No command specified\n");
+        return -1;
+    }
+
+    // Verificar whitelist
+    if (!is_command_allowed(args[0]))
+    {
+        printf("Command '%s' not allowed\n", args[0]);
+        return -1;
+    }
+
+    // Fork y ejecutar con redirección
+    pid_t pid = fork();
+
+    if (pid == -1)
+    {
+        perror("Error en fork");
+        return -1;
+    }
+
+    if (pid == 0)
+    {
+        // Proceso hijo: redirigir stdout al archivo
+        int fd;
+
+        if (append)
+        {
+            fd = open(file_trimmed, O_WRONLY | O_CREAT | O_APPEND, 0644);
+        }
+        else
+        {
+            fd = open(file_trimmed, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+        }
+
+        if (fd == -1)
+        {
+            perror("Error opening output file");
+            exit(1);
+        }
+
+        // Redirigir stdout
+        if (dup2(fd, STDOUT_FILENO) == -1)
+        {
+            perror("Error redirecting stdout");
+            close(fd);
+            exit(1);
+        }
+
+        close(fd);
+
+        // Ejecutar comando
+        execvp(args[0], args);
+        perror("Error en execvp");
+        exit(1);
+    }
+
+    // Proceso padre: esperar
+    int status;
+    waitpid(pid, &status, 0);
+
+    if (WIFEXITED(status) && WEXITSTATUS(status) == 0)
+    {
+        printf("Output saved to: %s\n", file_trimmed);
+        return 0;
+    }
+
+    return -1;
+}
+
+/**
  * @brief Ejecuta un comando externo simple (sin pipes)
  */
 int cmd_exec(shell_context_t* ctx, const char* command)
 {
-    (void)ctx; // No usado por ahora
+    (void)ctx;
 
     if (!command || strlen(command) == 0)
     {
-        printf("Usage: exec <command> [args...]\n");
+        printf("Comandos externos permitidos:\n");
+        for (int i = 0; allowed_commands[i] != NULL; i++)
+        {
+            printf("  - %s\n", allowed_commands[i]);
+        }
+        printf("\nEjemplo: ls /tmp\n");
+        printf("Ejemplo: cat /etc/hostname\n");
+        printf("Ejemplo: ps aux | grep monitoring\n");
+        printf("Ejemplo: ls -l > lista.txt\n");
         return -1;
     }
 
@@ -67,8 +257,8 @@ int cmd_exec(shell_context_t* ctx, const char* command)
     cmd_copy[sizeof(cmd_copy) - 1] = '\0';
 
     // Tokenizar
-    char* args[MAX_ARGS_PER_COMMAND]; // Máximo 64 argumentos
-    int argc = tokenize_command(cmd_copy, args, MAX_ARGS_PER_COMMAND);
+    char* args[64];
+    int argc = tokenize_command(cmd_copy, args, 64);
 
     if (argc == 0)
     {
@@ -133,27 +323,6 @@ static int count_pipes(const char* command_line)
 }
 
 /**
- * @brief Elimina espacios en blanco al inicio y final de una cadena
- */
-static char* trim(char* str)
-{
-    // Eliminar espacios al inicio
-    while (isspace((unsigned char)*str))
-        str++;
-
-    if (*str == 0)
-        return str;
-
-    // Eliminar espacios al final
-    char* end = str + strlen(str) - 1;
-    while (end > str && isspace((unsigned char)*end))
-        end--;
-
-    *(end + 1) = '\0';
-    return str;
-}
-
-/**
  * @brief Ejecuta un pipeline de comandos (soporte para pipes)
  * @param ctx Contexto del shell
  * @param command_line Línea de comandos con pipes (ej: "ls | grep test")
@@ -177,11 +346,11 @@ int parse_and_execute_pipeline(shell_context_t* ctx, const char* command_line)
     cmd_copy[sizeof(cmd_copy) - 1] = '\0';
 
     // Dividir por pipes
-    char* commands[MAX_COMMANDS_IN_PIPELINE]; // Máximo 10 comandos en pipeline
+    char* commands[10]; // Máximo 10 comandos en pipeline
     int num_commands = 0;
 
     char* token = strtok(cmd_copy, "|");
-    while (token != NULL && num_commands < MAX_COMMANDS_IN_PIPELINE)
+    while (token != NULL && num_commands < 10)
     {
         commands[num_commands++] = trim(token);
         token = strtok(NULL, "|");
@@ -194,8 +363,8 @@ int parse_and_execute_pipeline(shell_context_t* ctx, const char* command_line)
         strncpy(cmd_check, commands[i], sizeof(cmd_check) - 1);
         cmd_check[sizeof(cmd_check) - 1] = '\0';
 
-        char* args[MAX_ARGS_PER_COMMAND];
-        tokenize_command(cmd_check, args, MAX_ARGS_PER_COMMAND);
+        char* args[64];
+        tokenize_command(cmd_check, args, 64);
 
         if (!is_command_allowed(args[0]))
         {
@@ -205,7 +374,7 @@ int parse_and_execute_pipeline(shell_context_t* ctx, const char* command_line)
     }
 
     // Crear pipes
-    int pipes[MAX_PIPES_IN_PIPELINE][2]; // Máximo 9 pipes para 10 comandos
+    int pipes[9][2]; // Máximo 9 pipes para 10 comandos
     for (int i = 0; i < num_commands - 1; i++)
     {
         if (pipe(pipes[i]) == -1)
@@ -250,12 +419,12 @@ int parse_and_execute_pipeline(shell_context_t* ctx, const char* command_line)
             }
 
             // Tokenizar y ejecutar
-            char cmd_exec[MAX_COMMAND_LENGTH];
-            strncpy(cmd_exec, commands[i], sizeof(cmd_exec) - 1);
-            cmd_exec[sizeof(cmd_exec) - 1] = '\0';
+            char cmd_exec_buf[MAX_COMMAND_LENGTH];
+            strncpy(cmd_exec_buf, commands[i], sizeof(cmd_exec_buf) - 1);
+            cmd_exec_buf[sizeof(cmd_exec_buf) - 1] = '\0';
 
             char* args[64];
-            tokenize_command(cmd_exec, args, 64);
+            tokenize_command(cmd_exec_buf, args, 64);
 
             execvp(args[0], args);
             perror("Error en execvp");

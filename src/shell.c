@@ -1,4 +1,5 @@
 #include "shell.h"
+#include <ctype.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -41,10 +42,10 @@ int shell_init(shell_context_t* ctx)
 
     // Crear directorio de logs si no existe
     struct stat st = {0};
-    if (stat("SHELL_LOG_DIR", &st) == -1)
+    if (stat("/var/log/monitoreo", &st) == -1)
     {
-        mkdir("SHELL_LOG_DIR", DIR_PERMISSIONS);
-        if (stat("SHELL_LOG_DIR", &st) == -1)
+        mkdir("/var/log/monitoreo", DIR_PERMISSIONS);
+        if (stat("/var/log/monitoreo", &st) == -1)
         {
             fprintf(stderr, "Warning: No se pudo crear /var/log/monitoreo, logging deshabilitado\n");
         }
@@ -59,13 +60,25 @@ int shell_init(shell_context_t* ctx)
     return 0;
 }
 
+// Función auxiliar para extraer el primer token (comando)
+static void get_first_token(const char* str, char* token, size_t max_len)
+{
+    size_t i = 0;
+    while (i < max_len - 1 && str[i] != '\0' && !isspace((unsigned char)str[i]))
+    {
+        token[i] = str[i];
+        i++;
+    }
+    token[i] = '\0';
+}
+
 int shell_run(shell_context_t* ctx)
 {
     char command[MAX_COMMAND_LENGTH];
 
     printf("\n=== Shell de Monitoreo ===\n");
     printf("Comandos internos: status, start, stop, psnode, exit\n");
-    printf("Comandos externos: ls, cat, grep, ps, etc. (ver whitelist con 'exec')\n");
+    printf("Comandos externos: ls, cat, grep, ps, etc.\n");
     printf("Soporte de pipes: ls | grep test\n\n");
 
     while (shell_running)
@@ -90,7 +103,7 @@ int shell_run(shell_context_t* ctx)
         // Log del comando
         shell_log_command(command);
 
-        // Ejecutar comando
+        // Ejecutar comandos INTERNOS
         if (strcmp(command, "status") == 0)
         {
             cmd_status(ctx);
@@ -117,18 +130,32 @@ int shell_run(shell_context_t* ctx)
             // Comando exec explícito
             cmd_exec(ctx, command + 5);
         }
+        // Ejecutar comandos EXTERNOS
         else if (strchr(command, '|') != NULL)
         {
             // Detectar pipe y ejecutar pipeline
             parse_and_execute_pipeline(ctx, command);
         }
+        else if (strchr(command, '>') != NULL)
+        {
+            // Detectar redirección y ejecutar
+            execute_with_redirection(ctx, command);
+        }
         else
         {
             // Intentar ejecutar como comando externo
-            if (cmd_exec(ctx, command) != 0)
+            // Extraer primer token para mejor manejo de errores
+            char first_token[64];
+            get_first_token(command, first_token, sizeof(first_token));
+
+            int result = cmd_exec(ctx, command);
+
+            // Solo mostrar error si el comando realmente falló
+            if (result != 0)
             {
-                printf("Comando desconocido: %s\n", command);
-                printf("Comandos disponibles: status, start, stop, psnode, exit, exec\n");
+                printf("Comando desconocido o no permitido: %s\n", first_token);
+                printf("Comandos internos: status, start, stop, psnode, exit\n");
+                printf("Use 'exec' para ver comandos externos permitidos\n");
             }
         }
     }
@@ -141,17 +168,32 @@ void shell_cleanup(shell_context_t* ctx)
     if (!ctx)
         return;
 
+    // IMPORTANTE: Si hay un thread activo, detenerlo primero
+    pthread_mutex_lock(&ctx->state_mutex);
+    if (ctx->state == MONITOR_RUNNING)
+    {
+        ctx->state = MONITOR_STOPPED;
+        pthread_mutex_unlock(&ctx->state_mutex);
+
+        // Enviar señal de stop
+        char msg = 'S';
+        write(ctx->pipe_fd[1], &msg, 1);
+
+        // Esperar a que termine
+        pthread_join(ctx->monitor_thread, NULL);
+    }
+    else
+    {
+        pthread_mutex_unlock(&ctx->state_mutex);
+    }
+
     // Cerrar pipes
     if (ctx->pipe_fd[0] > 0)
         close(ctx->pipe_fd[0]);
     if (ctx->pipe_fd[1] > 0)
         close(ctx->pipe_fd[1]);
 
-    // CRÍTICO: Asegurar que el mutex está libre antes de destruir
-    pthread_mutex_lock(&ctx->state_mutex);
-    pthread_mutex_unlock(&ctx->state_mutex);
-
-    // Ahora sí destruir
+    // Destruir mutex
     pthread_mutex_destroy(&ctx->state_mutex);
 
     printf("Shell terminado\n");
