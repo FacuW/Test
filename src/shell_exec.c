@@ -67,7 +67,7 @@ int cmd_exec(shell_context_t* ctx, const char* command)
     cmd_copy[sizeof(cmd_copy) - 1] = '\0';
 
     // Tokenizar
-    char* args[MAX_ARGS_PER_COMMAND] ; // Máximo 64 argumentos
+    char* args[MAX_ARGS_PER_COMMAND]; // Máximo 64 argumentos
     int argc = tokenize_command(cmd_copy, args, MAX_ARGS_PER_COMMAND);
 
     if (argc == 0)
