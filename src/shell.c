@@ -80,6 +80,22 @@ int shell_run(shell_context_t* ctx)
     printf("Comandos internos: status, start, stop, psnode, exit\n");
     printf("Comandos externos: ls, cat, grep, ps, etc.\n");
     printf("Soporte de pipes: ls | grep test\n\n");
+    printf("Comandos TP3:\n");
+    printf("  mem_init [first_fit|best_fit] - Inicializar gestor de memoria\n");
+    printf("  mem_alloc <size>              - Asignar memoria\n");
+    printf("  mem_free <slot>               - Liberar memoria\n");
+    printf("  mem_dump                      - Mostrar estado del heap\n");
+    printf("  mem_stats                     - Estadísticas de memoria\n");
+    printf("  mem_test <type>               - Tests de fragmentación/coalescing\n");
+    printf("  storage_init                  - Inicializar almacenamiento\n");
+    printf("  storage_write                 - Escribir métricas actuales\n");
+    printf("  storage_read [fecha]          - Leer registros\n");
+    printf("  storage_list                  - Listar archivos\n");
+    printf("  storage_stats                 - Estadísticas de almacenamiento\n");
+    printf("  sandbox_init [mode]           - Inicializar sandbox\n");
+    printf("  sandbox_list                  - Listar plugins\n");
+    printf("  sandbox_run <plugin> <file>   - Ejecutar plugin\n");
+    printf("  demo [memory|storage|sandbox] - Demostraciones\n");
 
     while (shell_running)
     {
@@ -158,6 +174,80 @@ int shell_run(shell_context_t* ctx)
                 printf("Use 'exec' para ver comandos externos permitidos\n");
             }
         }
+        else if (strncmp(command, "mem_init", 8) == 0) { // === COMANDOS TP3 - GESTIÓN DE MEMORIA ===
+            char* args = command + 8;
+            while (*args == ' ') args++; // Skip spaces
+            cmd_mem_init(ctx, strlen(args) > 0 ? args : NULL);
+        }
+        else if (strncmp(command, "mem_alloc", 9) == 0) {
+            char* args = command + 9;
+            while (*args == ' ') args++;
+            cmd_mem_alloc(ctx, args);
+        }
+        else if (strncmp(command, "mem_free", 8) == 0) {
+            char* args = command + 8;
+            while (*args == ' ') args++;
+            cmd_mem_free(ctx, args);
+        }
+        else if (strcmp(command, "mem_dump") == 0) {
+            cmd_mem_dump(ctx);
+        }
+        else if (strcmp(command, "mem_stats") == 0) {
+            cmd_mem_stats(ctx);
+        }
+        else if (strncmp(command, "mem_test", 8) == 0) {
+            char* args = command + 8;
+            while (*args == ' ') args++;
+            cmd_mem_test(ctx, strlen(args) > 0 ? args : NULL);
+        }
+        else if (strcmp(command, "mem_cleanup") == 0) {
+            cmd_mem_cleanup(ctx);
+        }
+        else if (strcmp(command, "storage_init") == 0) { // === COMANDOS TP3 - ALMACENAMIENTO PERSISTENTE ===
+            cmd_storage_init(ctx);
+        }
+        else if (strcmp(command, "storage_write") == 0) {
+            cmd_storage_write(ctx);
+        }
+        else if (strncmp(command, "storage_read", 12) == 0) {
+            char* args = command + 12;
+            while (*args == ' ') args++;
+            cmd_storage_read(ctx, strlen(args) > 0 ? args : NULL);
+        }
+        else if (strcmp(command, "storage_list") == 0) {
+            cmd_storage_list(ctx);
+        }
+        else if (strcmp(command, "storage_stats") == 0) {
+            cmd_storage_stats(ctx);
+        }
+        else if (strncmp(command, "sandbox_init", 12) == 0) { // === COMANDOS TP3 - SANDBOX ===
+            char* args = command + 12;
+            while (*args == ' ') args++;
+            cmd_sandbox_init(ctx, strlen(args) > 0 ? args : NULL);
+        }
+        else if (strcmp(command, "sandbox_list") == 0) {
+            cmd_sandbox_list(ctx);
+        }
+        else if (strncmp(command, "sandbox_run", 11) == 0) {
+            // Parsing más complejo para plugin_name y input_file
+            char* args = command + 11;
+            while (*args == ' ') args++;
+            
+            char* plugin_name = strtok(args, " ");
+            char* input_file = strtok(NULL, " ");
+            cmd_sandbox_run(ctx, plugin_name, input_file);
+        }
+        else if (strcmp(command, "sandbox_config") == 0) {
+            cmd_sandbox_config(ctx);
+        }
+
+        // === COMANDO DE DEMOSTRACIÓN ===
+        else if (strncmp(command, "demo", 4) == 0) {
+            char* args = command + 4;
+            while (*args == ' ') args++;
+            cmd_demo(ctx, strlen(args) > 0 ? args : NULL);
+        }
+
     }
 
     return 0;

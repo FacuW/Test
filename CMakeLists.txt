@@ -63,3 +63,9 @@ endif()
 
 # Flags de debug y coverage
 set(CMAKE_C_FLAGS_DEBUG "-g --coverage -fsanitize=address,leak,undefined")
+
+target_link_libraries(${PROJECT_NAME} 
+    cjson::cjson 
+    Threads::Threads
+    ${CMAKE_DL_LIBS}  # para dlopen/dlsym
+)

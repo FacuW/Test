@@ -123,3 +123,21 @@ if(PROM_LIB)
 endif()
 
 add_test(NAME shell_exec_tests COMMAND test_shell_exec)
+
+add_library(monitoreo_lib STATIC
+    ${CMAKE_SOURCE_DIR}/src/metrics.c
+    ${CMAKE_SOURCE_DIR}/src/prometheus_metrics.c
+    ${CMAKE_SOURCE_DIR}/src/memory_manager.c      
+    ${CMAKE_SOURCE_DIR}/src/storage.c             
+    ${CMAKE_SOURCE_DIR}/src/sandbox.c             
+    ${CMAKE_SOURCE_DIR}/src/shell_tp3_commands.c  
+)
+
+target_link_libraries(monitoreo_lib 
+    cjson::cjson
+    ${CMAKE_DL_LIBS}  
+)
+
+add_executable(test_memory_manager unit/test_memory_manager.c)
+target_link_libraries(test_memory_manager monitoreo_lib ${UNITY_TARGET})
+add_test(NAME memory_manager_tests COMMAND test_memory_manager)
