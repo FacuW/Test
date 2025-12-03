@@ -36,13 +36,13 @@ static int create_directory_recursive(const char* path)
         if (*p == '/')
         {
             *p = 0;
-            if (mkdir(tmp, 0755) != 0 && errno != EEXIST)
+            if (mkdir(tmp, DIR_PERMISSIONS) != 0 && errno != EEXIST)
                 return -1;
             *p = '/';
         }
     }
 
-    if (mkdir(tmp, 0755) != 0 && errno != EEXIST)
+    if (mkdir(tmp, DIR_PERMISSIONS) != 0 && errno != EEXIST)
         return -1;
 
     return 0;
@@ -66,7 +66,7 @@ int read_cpu_metrics(cpu_metrics_t* cpu)
                         &softirq, &steal);
     fclose(file);
 
-    if (result != 8)
+    if (result != CPU_STAT_FIELDS_COUNT)
     {
         fprintf(stderr, "Error al leer datos de CPU\n");
         return -1;
