@@ -11,6 +11,7 @@ void* monitor_thread_func(void* arg)
 
     while (1)
     {
+        // CRÍTICO: Verificar estado antes de cualquier operación
         pthread_mutex_lock(&ctx->state_mutex);
         monitor_state_t state = ctx->state;
         pthread_mutex_unlock(&ctx->state_mutex);
@@ -30,6 +31,7 @@ void* monitor_thread_func(void* arg)
                      tm_info->tm_mon + 1, tm_info->tm_mday);
 
             save_metrics_to_json(&metrics, filename);
+            update_prometheus_metrics(&metrics);
         }
 
         // Usar select para timeout interruptible

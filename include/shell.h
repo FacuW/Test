@@ -5,7 +5,7 @@
 #include <pthread.h>
 
 #define SHELL_PROMPT "monitoring> "
-// ← ELIMINADO: #define MAX_COMMAND_LENGTH 256 (ya está en monitoring.h)
+// MAX_COMMAND_LENGTH ya está definido en monitoring.h
 #define SHELL_LOG_PATH "/var/log/monitoreo/shell.log"
 
 // Estados del sistema de monitoreo
@@ -29,23 +29,22 @@ int shell_init(shell_context_t* ctx);
 int shell_run(shell_context_t* ctx);
 void shell_cleanup(shell_context_t* ctx);
 
-// Comandos del shell
+// Comandos del shell (internos)
 int cmd_status(shell_context_t* ctx);
 int cmd_start(shell_context_t* ctx);
 int cmd_stop(shell_context_t* ctx);
 int cmd_psnode(shell_context_t* ctx);
 int cmd_exit(shell_context_t* ctx);
 
+// Comandos externos (NUEVO)
+int cmd_exec(shell_context_t* ctx, const char* command);
+int parse_and_execute_pipeline(shell_context_t* ctx, const char* command_line);
+int execute_with_redirection(shell_context_t* ctx, const char* command);
+
 // Logging
 int shell_log_command(const char* command);
 
 // Thread de monitoreo
 void* monitor_thread_func(void* arg);
-
-// Comando para ejecutar comandos externos
-int cmd_exec(shell_context_t* ctx, const char* command);
-
-// Parser para detectar pipes
-int parse_and_execute_pipeline(shell_context_t* ctx, const char* command_line);
 
 #endif
