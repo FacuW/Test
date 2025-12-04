@@ -1,9 +1,9 @@
 #ifndef STORAGE_H
 #define STORAGE_H
 
+#include "monitoring.h"
 #include <stdint.h>
 #include <time.h>
-#include "monitoring.h"
 
 /**
  * @file storage.h
@@ -17,12 +17,13 @@
 #define STORAGE_MAX_PATH_LENGTH 512
 
 // Magic numbers y versiones
-#define STORAGE_MAGIC 0x4D4F4E49  // "MONI" en hex
+#define STORAGE_MAGIC 0x4D4F4E49 // "MONI" en hex
 #define STORAGE_VERSION 1
-#define STORAGE_RECORD_SIZE 128   // Tamaño fijo de cada registro
+#define STORAGE_RECORD_SIZE 128 // Tamaño fijo de cada registro
 
 // Estructura de la cabecera del archivo
-typedef struct __attribute__((packed)) {
+typedef struct __attribute__((packed))
+{
     uint32_t magic;           // Magic number para validación
     uint16_t version;         // Versión del formato
     uint16_t record_size;     // Tamaño de cada registro
@@ -35,38 +36,41 @@ typedef struct __attribute__((packed)) {
 } storage_header_t;
 
 // Estructura de un registro de datos
-typedef struct __attribute__((packed)) {
-    uint64_t timestamp;       // Timestamp del registro
-    uint32_t record_type;     // Tipo de registro (para extensibilidad)
-    uint32_t data_length;     // Longitud de los datos válidos
-    
+typedef struct __attribute__((packed))
+{
+    uint64_t timestamp;   // Timestamp del registro
+    uint32_t record_type; // Tipo de registro (para extensibilidad)
+    uint32_t data_length; // Longitud de los datos válidos
+
     // Datos del sistema de monitoreo
-    double cpu_usage;         // Uso de CPU
-    double cpu_user;          // CPU tiempo usuario
-    double cpu_system;        // CPU tiempo sistema
-    uint64_t memory_total;    // Memoria total
-    uint64_t memory_used;     // Memoria usada
-    uint64_t memory_free;     // Memoria libre
-    double load_1m;          // Load average 1 minuto
-    double load_5m;          // Load average 5 minutos
-    double load_15m;         // Load average 15 minutos
-    
-    uint8_t padding[32];      // Padding para llegar a tamaño fijo
-    uint32_t record_crc;      // CRC del registro (excluyendo este campo)
+    double cpu_usage;      // Uso de CPU
+    double cpu_user;       // CPU tiempo usuario
+    double cpu_system;     // CPU tiempo sistema
+    uint64_t memory_total; // Memoria total
+    uint64_t memory_used;  // Memoria usada
+    uint64_t memory_free;  // Memoria libre
+    double load_1m;        // Load average 1 minuto
+    double load_5m;        // Load average 5 minutos
+    double load_15m;       // Load average 15 minutos
+
+    uint8_t padding[32]; // Padding para llegar a tamaño fijo
+    uint32_t record_crc; // CRC del registro (excluyendo este campo)
 } storage_record_t;
 
 // Handle del archivo de almacenamiento
-typedef struct {
-    int fd;                   // File descriptor
+typedef struct
+{
+    int fd;                                 // File descriptor
     char filepath[STORAGE_MAX_PATH_LENGTH]; // Ruta completa del archivo
-    storage_header_t header;  // Cabecera cacheada
-    time_t file_date;         // Fecha del archivo (para rotación diaria)
-    int is_open;              // Flag de estado
-    int is_readonly;          // Flag de solo lectura
+    storage_header_t header;                // Cabecera cacheada
+    time_t file_date;                       // Fecha del archivo (para rotación diaria)
+    int is_open;                            // Flag de estado
+    int is_readonly;                        // Flag de solo lectura
 } storage_handle_t;
 
 // Estadísticas del almacenamiento
-typedef struct {
+typedef struct
+{
     uint32_t total_files;     // Total de archivos de datos
     uint32_t total_records;   // Total de registros
     uint32_t valid_records;   // Registros válidos
@@ -80,9 +84,8 @@ typedef struct {
 int storage_init(void);
 int storage_open_daily_file(storage_handle_t* handle, time_t date, int readonly);
 int storage_write_record(storage_handle_t* handle, const system_metrics_t* metrics);
-int storage_read_all_records(storage_handle_t* handle, 
-                           int (*callback)(const storage_record_t* record, void* user_data),
-                           void* user_data);
+int storage_read_all_records(storage_handle_t* handle, int (*callback)(const storage_record_t* record, void* user_data),
+                             void* user_data);
 int storage_close(storage_handle_t* handle);
 void storage_cleanup(void);
 

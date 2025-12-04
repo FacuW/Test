@@ -68,7 +68,7 @@ int mem_init(alloc_strategy_t strategy)
     
     printf("Memory manager initialized with %s strategy\n",
            strategy == ALLOC_FIRST_FIT ? "First Fit" : "Best Fit");
-    printf("Heap size: %zu bytes\n", HEAP_SIZE);
+    printf("Heap size: %zu bytes\n", (size_t)HEAP_SIZE);
     
     return 0;
 }
@@ -191,7 +191,7 @@ void* mem_alloc(size_t size)
     }
     
     // Alinear tamaño a múltiplo de 8 bytes
-    size = (size + 7) & ~7;
+    size = (size + 7U) & ~((size_t)7U);
     
     if (size < MIN_BLOCK_SIZE) {
         size = MIN_BLOCK_SIZE;
@@ -532,11 +532,11 @@ void mem_dump_state(void)
         block_header_t* block = (block_header_t*)addr;
         
         if (block->magic != BLOCK_MAGIC) {
-            printf("ERROR: Invalid block at offset %ld\n", addr - g_heap_buffer);
+            printf("ERROR: Invalid block at offset %td\n", (ptrdiff_t)(addr - g_heap_buffer));
             break;
         }
         
-        size_t offset = addr - g_heap_buffer;
+        size_t offset = (size_t)(addr - g_heap_buffer);
         printf("Block %d: offset=%zu, size=%zu, state=%s\n",
                block_num++, offset, block->size,
                block->state == BLOCK_FREE ? "FREE" : "ALLOCATED");
@@ -549,7 +549,7 @@ void mem_dump_state(void)
     int free_num = 0;
     
     while (free_block) {
-        size_t offset = (uint8_t*)free_block - g_heap_buffer;
+        size_t offset = (size_t)((uint8_t*)free_block - g_heap_buffer);
         printf("Free block %d: offset=%zu, size=%zu\n",
                free_num++, offset, free_block->size);
         free_block = free_block->next;

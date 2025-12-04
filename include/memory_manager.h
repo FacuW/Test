@@ -15,49 +15,54 @@
 #define BLOCK_MAGIC 0xDEADBEEF // Magic number para validación
 
 // Algoritmos de asignación disponibles
-typedef enum {
+typedef enum
+{
     ALLOC_FIRST_FIT = 0,
     ALLOC_BEST_FIT = 1
 } alloc_strategy_t;
 
 // Estados de bloque
-typedef enum {
+typedef enum
+{
     BLOCK_FREE = 0,
     BLOCK_ALLOCATED = 1
 } block_state_t;
 
 // Estructura de un bloque en el heap
-typedef struct block_header {
-    uint32_t magic;              // Magic number para validación
-    size_t size;                 // Tamaño del bloque (sin incluir header)
-    block_state_t state;         // Estado del bloque
-    struct block_header* next;   // Siguiente bloque libre (solo para bloques libres)
-    struct block_header* prev;   // Bloque anterior libre (solo para bloques libres)
-    uint32_t checksum;           // Checksum simple para integridad
+typedef struct block_header
+{
+    uint32_t magic;            // Magic number para validación
+    size_t size;               // Tamaño del bloque (sin incluir header)
+    block_state_t state;       // Estado del bloque
+    struct block_header* next; // Siguiente bloque libre (solo para bloques libres)
+    struct block_header* prev; // Bloque anterior libre (solo para bloques libres)
+    uint32_t checksum;         // Checksum simple para integridad
 } block_header_t;
 
 // Estructura de control del heap
-typedef struct {
-    void* heap_start;           // Inicio del heap
-    void* heap_end;             // Final del heap  
-    size_t heap_size;           // Tamaño total del heap
-    size_t used_memory;         // Memoria utilizada
-    size_t free_memory;         // Memoria libre
-    block_header_t* free_list;  // Lista de bloques libres
-    alloc_strategy_t strategy;  // Estrategia de asignación actual
-    uint32_t alloc_count;       // Contador de asignaciones
-    uint32_t free_count;        // Contador de liberaciones
+typedef struct
+{
+    void* heap_start;          // Inicio del heap
+    void* heap_end;            // Final del heap
+    size_t heap_size;          // Tamaño total del heap
+    size_t used_memory;        // Memoria utilizada
+    size_t free_memory;        // Memoria libre
+    block_header_t* free_list; // Lista de bloques libres
+    alloc_strategy_t strategy; // Estrategia de asignación actual
+    uint32_t alloc_count;      // Contador de asignaciones
+    uint32_t free_count;       // Contador de liberaciones
 } heap_control_t;
 
 // Estadísticas del heap
-typedef struct {
-    size_t total_size;          // Tamaño total
-    size_t used_size;           // Memoria utilizada
-    size_t free_size;           // Memoria libre
-    size_t largest_free_block;  // Mayor bloque libre
-    size_t free_block_count;    // Número de bloques libres
+typedef struct
+{
+    size_t total_size;            // Tamaño total
+    size_t used_size;             // Memoria utilizada
+    size_t free_size;             // Memoria libre
+    size_t largest_free_block;    // Mayor bloque libre
+    size_t free_block_count;      // Número de bloques libres
     size_t allocated_block_count; // Número de bloques asignados
-    double fragmentation_ratio; // Ratio de fragmentación externa
+    double fragmentation_ratio;   // Ratio de fragmentación externa
 } heap_stats_t;
 
 // Funciones principales del gestor de memoria

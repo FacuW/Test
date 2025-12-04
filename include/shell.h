@@ -1,10 +1,10 @@
 #ifndef SHELL_H
 #define SHELL_H
 
-#include "monitoring.h"
 #include "memory_manager.h"
-#include "storage.h"
+#include "monitoring.h"
 #include "sandbox.h"
+#include "storage.h"
 #include <pthread.h>
 
 #define SHELL_PROMPT "monitoring> "
