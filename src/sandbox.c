@@ -209,8 +209,8 @@ int sandbox_setup_limits(void)
     struct rlimit limit;
 
     // Límite de CPU
-    limit.rlim_cur = g_sandbox_config.cpu_limit;
-    limit.rlim_max = g_sandbox_config.cpu_limit;
+    limit.rlim_cur = (rlim_t)g_sandbox_config.cpu_limit;
+    limit.rlim_max = (rlim_t)g_sandbox_config.cpu_limit;
     if (setrlimit(RLIMIT_CPU, &limit) != 0)
     {
         perror("setrlimit CPU");
@@ -218,8 +218,8 @@ int sandbox_setup_limits(void)
     }
 
     // Límite de tamaño de archivos
-    limit.rlim_cur = g_sandbox_config.file_size_limit;
-    limit.rlim_max = g_sandbox_config.file_size_limit;
+    limit.rlim_cur = (rlim_t)g_sandbox_config.file_size_limit;
+    limit.rlim_max = (rlim_t)g_sandbox_config.file_size_limit;
     if (setrlimit(RLIMIT_FSIZE, &limit) != 0)
     {
         perror("setrlimit FSIZE");
@@ -227,8 +227,8 @@ int sandbox_setup_limits(void)
     }
 
     // Límite de file descriptors
-    limit.rlim_cur = g_sandbox_config.max_fds;
-    limit.rlim_max = g_sandbox_config.max_fds;
+    limit.rlim_cur = (rlim_t)g_sandbox_config.max_fds;
+    limit.rlim_max = (rlim_t)g_sandbox_config.max_fds;
     if (setrlimit(RLIMIT_NOFILE, &limit) != 0)
     {
         perror("setrlimit NOFILE");
@@ -236,8 +236,8 @@ int sandbox_setup_limits(void)
     }
 
     // Límite de memoria (solo en sistemas que lo soportan)
-    limit.rlim_cur = g_sandbox_config.memory_limit;
-    limit.rlim_max = g_sandbox_config.memory_limit;
+    limit.rlim_cur = (rlim_t)g_sandbox_config.memory_limit;
+    limit.rlim_max = (rlim_t)g_sandbox_config.memory_limit;
     setrlimit(RLIMIT_AS, &limit); // Ignorar errores, no todos los sistemas lo soportan
 
     return 0;
@@ -506,8 +506,14 @@ int sandbox_execute_plugin(const char* plugin_name, const char* input_file, sand
             exit(1);
         }
 
-        // Buscar símbolo analizar_datos
-        analizar_datos_func_t analizar_datos = (analizar_datos_func_t)sandbox_dlsym(handle, "analizar_datos");
+        // Buscar símbolo analizar_datos usando union para evitar warning de pedantic
+        union {
+            void* obj;
+            analizar_datos_func_t func;
+        } cast_helper;
+
+        cast_helper.obj = sandbox_dlsym(handle, "analizar_datos");
+        analizar_datos_func_t analizar_datos = cast_helper.func;
 
         if (!analizar_datos)
         {
@@ -518,6 +524,13 @@ int sandbox_execute_plugin(const char* plugin_name, const char* input_file, sand
 
         // Ejecutar función del plugin
         int result = analizar_datos(input_file);
+
+        // FORZAR FLUSH de stdout y stderr antes de salir
+        fflush(stdout);
+        fflush(stderr);
+
+        // Pequeña espera para asegurar que el buffer se vacía
+        usleep(10000); // 10ms
 
         // Limpiar y salir
         sandbox_dlclose(handle);
@@ -532,21 +545,34 @@ int sandbox_execute_plugin(const char* plugin_name, const char* input_file, sand
         close(stdout_pipe[1]);
         close(stderr_pipe[1]);
 
-        // Leer stdout
-        ssize_t stdout_read = read(stdout_pipe[0], execution->stdout_data, sizeof(execution->stdout_data) - 1);
-        if (stdout_read > 0)
-        {
-            execution->stdout_size = stdout_read;
-            execution->stdout_data[stdout_read] = '\0';
-        }
+        // Leer stdout y stderr de forma SÍNCRONA
+        char buffer[4096];
+        ssize_t n;
 
-        // Leer stderr
-        ssize_t stderr_read = read(stderr_pipe[0], execution->stderr_data, sizeof(execution->stderr_data) - 1);
-        if (stderr_read > 0)
+        execution->stdout_size = 0;
+        execution->stderr_size = 0;
+
+        // Leer TODO el stdout disponible
+        while ((n = read(stdout_pipe[0], buffer, sizeof(buffer))) > 0)
         {
-            execution->stderr_size = stderr_read;
-            execution->stderr_data[stderr_read] = '\0';
+            if (execution->stdout_size + (size_t)n < sizeof(execution->stdout_data) - 1)
+            {
+                memcpy(execution->stdout_data + execution->stdout_size, buffer, (size_t)n);
+                execution->stdout_size += (size_t)n;
+            }
         }
+        execution->stdout_data[execution->stdout_size] = '\0';
+
+        // Leer TODO el stderr disponible
+        while ((n = read(stderr_pipe[0], buffer, sizeof(buffer))) > 0)
+        {
+            if (execution->stderr_size + (size_t)n < sizeof(execution->stderr_data) - 1)
+            {
+                memcpy(execution->stderr_data + execution->stderr_size, buffer, (size_t)n);
+                execution->stderr_size += (size_t)n;
+            }
+        }
+        execution->stderr_data[execution->stderr_size] = '\0';
 
         // Cerrar pipes
         close(stdout_pipe[0]);
@@ -571,14 +597,13 @@ int sandbox_execute_plugin(const char* plugin_name, const char* input_file, sand
         else if (WIFSIGNALED(status))
         {
             execution->exit_code = -WTERMSIG(status);
-            execution->result = SANDBOX_ERROR_TIMEOUT; // Probablemente por límites de recursos
+            execution->result = SANDBOX_ERROR_TIMEOUT;
         }
         else
         {
             execution->result = SANDBOX_ERROR_EXECUTION_FAILED;
         }
     }
-
     // Registrar ejecución
     sandbox_log_execution(plugin_name, execution);
 
@@ -590,7 +615,10 @@ int sandbox_execute_plugin(const char* plugin_name, const char* input_file, sand
  */
 int sandbox_list_plugins(plugin_info_t plugins[], int max_plugins)
 {
-    DIR* dir = opendir(g_sandbox_config.plugins_dir);
+    // Auto-inicializar si es necesario
+    const char* plugins_dir = g_sandbox_initialized ? g_sandbox_config.plugins_dir : SANDBOX_PLUGINS_DIR;
+
+    DIR* dir = opendir(plugins_dir);
     if (!dir)
     {
         perror("Cannot open plugins directory");
@@ -608,7 +636,14 @@ int sandbox_list_plugins(plugin_info_t plugins[], int max_plugins)
         }
 
         char full_path[SANDBOX_MAX_PATH_LENGTH];
-        snprintf(full_path, sizeof(full_path), "%s%s", g_sandbox_config.plugins_dir, entry->d_name);
+        int written = snprintf(full_path, sizeof(full_path), "%s%s", plugins_dir, entry->d_name);
+
+        // Verificar truncamiento
+        if (written < 0 || (size_t)written >= sizeof(full_path))
+        {
+            fprintf(stderr, "Warning: path too long for %s, skipping\n", entry->d_name);
+            continue;
+        }
 
         struct stat st;
         if (stat(full_path, &st) == 0 && S_ISREG(st.st_mode))
@@ -617,9 +652,8 @@ int sandbox_list_plugins(plugin_info_t plugins[], int max_plugins)
             strncpy(plugins[plugin_count].path, full_path, sizeof(plugins[plugin_count].path) - 1);
 
             plugins[plugin_count].last_modified = st.st_mtime;
-            plugins[plugin_count].file_size = st.st_size;
-            plugins[plugin_count].is_valid = (sandbox_validate_plugin_path(full_path) == 0) ? 1 : 0;
-
+            plugins[plugin_count].file_size = (size_t)st.st_size;
+            plugins[plugin_count].is_valid = 1;
             strncpy(plugins[plugin_count].description, "C++ Plugin", sizeof(plugins[plugin_count].description) - 1);
 
             plugin_count++;

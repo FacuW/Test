@@ -18,6 +18,11 @@
 #include <string.h>
 #include <time.h>
 
+// Tabla para tracking de asignaciones de memoria
+#define MAX_ALLOCATIONS 100
+static void* allocation_table[MAX_ALLOCATIONS] = {NULL};
+static int allocation_count = 0;
+
 // ============================================================
 // COMANDOS DE GESTIÓN DE MEMORIA
 // ============================================================
@@ -86,7 +91,18 @@ int cmd_mem_alloc(shell_context_t* ctx, const char* size_str)
 
     if (ptr)
     {
-        printf("Memoria asignada: %zu bytes en dirección %p\n", size, ptr);
+        // Guardar en tabla para permitir mem_free con índices
+        if (allocation_count < MAX_ALLOCATIONS)
+        {
+            allocation_table[allocation_count] = ptr;
+            printf("Memoria asignada: %zu bytes en dirección %p (slot %d)\n", size, ptr, allocation_count);
+            allocation_count++;
+        }
+        else
+        {
+            printf("Memoria asignada: %zu bytes en dirección %p (WARNING: tabla llena, use dirección para liberar)\n",
+                   size, ptr);
+        }
         return 0;
     }
 
@@ -103,16 +119,38 @@ int cmd_mem_free(shell_context_t* ctx, const char* ptr_str)
 
     if (!ptr_str || strlen(ptr_str) == 0)
     {
-        printf("Uso: mem_free <address>\n");
-        printf("Ejemplo: mem_free 0x7fff12345678\n");
+        printf("Uso: mem_free <slot_o_direccion>\n");
+        printf("Ejemplo: mem_free 0  (libera slot 0)\n");
+        printf("Ejemplo: mem_free 0x7fff12345678  (libera dirección)\n");
         return -1;
     }
 
     void* ptr = NULL;
-    if (sscanf(ptr_str, "%p", &ptr) != 1)
+
+    // Intentar interpretar como slot (número sin 0x)
+    if (ptr_str[0] >= '0' && ptr_str[0] <= '9' && strchr(ptr_str, 'x') == NULL)
     {
-        printf("Error: dirección inválida\n");
-        return -1;
+        int slot = atoi(ptr_str);
+        if (slot >= 0 && slot < allocation_count && allocation_table[slot] != NULL)
+        {
+            ptr = allocation_table[slot];
+            allocation_table[slot] = NULL;
+            printf("Liberando slot %d (%p)...\n", slot, ptr);
+        }
+        else
+        {
+            printf("Error: slot %d inválido o ya liberado\n", slot);
+            return -1;
+        }
+    }
+    else
+    {
+        // Interpretar como dirección hexadecimal
+        if (sscanf(ptr_str, "%p", &ptr) != 1)
+        {
+            printf("Error: formato inválido (use slot o dirección 0x...)\n");
+            return -1;
+        }
     }
 
     if (mem_free(ptr) == 0)
@@ -149,9 +187,9 @@ int cmd_mem_stats(shell_context_t* ctx)
         printf("\n=== ESTADÍSTICAS DE MEMORIA ===\n");
         printf("Tamaño total:          %zu bytes\n", stats.total_size);
         printf("Memoria utilizada:     %zu bytes (%.2f%%)\n", stats.used_size,
-               (double)stats.used_size / stats.total_size * 100.0);
+               (double)stats.used_size / (double)stats.total_size * 100.0);
         printf("Memoria libre:         %zu bytes (%.2f%%)\n", stats.free_size,
-               (double)stats.free_size / stats.total_size * 100.0);
+               (double)stats.free_size / (double)stats.total_size * 100.0);
         printf("Mayor bloque libre:    %zu bytes\n", stats.largest_free_block);
         printf("Bloques libres:        %zu\n", stats.free_block_count);
         printf("Bloques asignados:     %zu\n", stats.allocated_block_count);
@@ -254,7 +292,7 @@ int cmd_mem_test(shell_context_t* ctx, const char* test_type)
         printf("Asignando 20 bloques de tamaños variables...\n");
         for (int i = 0; i < 20; i++)
         {
-            size_t size = 128 + (i * 64);
+            size_t size = (size_t)(128 + (i * 64));
             ptrs[i] = mem_alloc(size);
             if (ptrs[i])
                 count++;
@@ -463,7 +501,8 @@ int cmd_storage_stats(shell_context_t* ctx)
     printf("Registros totales:     %u\n", stats.total_records);
     printf("Registros válidos:     %u\n", stats.valid_records);
     printf("Registros corruptos:   %u\n", stats.corrupt_records);
-    printf("Tamaño total:          %lu bytes (%.2f MB)\n", stats.total_size, stats.total_size / 1024.0 / 1024.0);
+    printf("Tamaño total:          %lu bytes (%.2f MB)\n", stats.total_size,
+           (double)stats.total_size / 1024.0 / 1024.0);
 
     if (stats.oldest_record > 0)
     {

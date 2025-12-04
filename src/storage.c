@@ -7,6 +7,7 @@
 #include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -30,7 +31,7 @@ static void init_crc32_table(void)
 
     for (int i = 0; i < 256; i++)
     {
-        uint32_t crc = i;
+        uint32_t crc = (uint32_t)(unsigned int)i;
         for (int j = 0; j < 8; j++)
         {
             if (crc & 1)
@@ -150,7 +151,7 @@ static void init_storage_header(storage_header_t* header)
     header->record_size = STORAGE_RECORD_SIZE;
     header->total_records = 0;
     header->valid_records = 0;
-    header->created_time = time(NULL);
+    header->created_time = (uint64_t)time(NULL);
     header->last_write_time = header->created_time;
 
     // Calcular CRC de la cabecera (excluyendo el campo header_crc)
@@ -284,17 +285,17 @@ int storage_metrics_to_record(const system_metrics_t* metrics, storage_record_t*
 
     memset(record, 0, sizeof(storage_record_t));
 
-    record->timestamp = metrics->timestamp;
+    record->timestamp = (uint64_t)metrics->timestamp;
     record->record_type = 1; // Tipo 1 = métricas del sistema
-    record->data_length = sizeof(storage_record_t) - offsetof(storage_record_t, cpu_usage) - sizeof(record->padding) -
-                          sizeof(record->record_crc);
+    record->data_length = (uint32_t)(sizeof(storage_record_t) - offsetof(storage_record_t, cpu_usage) -
+                                     sizeof(record->padding) - sizeof(record->record_crc));
 
     record->cpu_usage = metrics->cpu.usage_percent;
     record->cpu_user = metrics->cpu.user;
     record->cpu_system = metrics->cpu.system;
-    record->memory_total = metrics->memory.total;
-    record->memory_used = metrics->memory.used;
-    record->memory_free = metrics->memory.free;
+    record->memory_total = (uint64_t)metrics->memory.total;
+    record->memory_used = (uint64_t)metrics->memory.used;
+    record->memory_free = (uint64_t)metrics->memory.free;
     record->load_1m = metrics->load.load_1m;
     record->load_5m = metrics->load.load_5m;
     record->load_15m = metrics->load.load_15m;
@@ -315,13 +316,13 @@ int storage_record_to_metrics(const storage_record_t* record, system_metrics_t* 
 
     memset(metrics, 0, sizeof(system_metrics_t));
 
-    metrics->timestamp = record->timestamp;
+    metrics->timestamp = (time_t)record->timestamp;
     metrics->cpu.usage_percent = record->cpu_usage;
     metrics->cpu.user = record->cpu_user;
     metrics->cpu.system = record->cpu_system;
-    metrics->memory.total = record->memory_total;
-    metrics->memory.used = record->memory_used;
-    metrics->memory.free = record->memory_free;
+    metrics->memory.total = (long)record->memory_total;
+    metrics->memory.used = (long)record->memory_used;
+    metrics->memory.free = (long)record->memory_free;
     metrics->load.load_1m = record->load_1m;
     metrics->load.load_5m = record->load_5m;
     metrics->load.load_15m = record->load_15m;
@@ -346,7 +347,8 @@ int storage_validate_record(const storage_record_t* record)
     }
 
     // Validaciones básicas de rango
-    if (record->timestamp <= 0 || record->timestamp > time(NULL) + 3600)
+    time_t now = time(NULL);
+    if (record->timestamp <= 0 || record->timestamp > (uint64_t)(now + 3600))
     {
         return -1; // Timestamp inválido
     }
@@ -393,7 +395,7 @@ int storage_write_record(storage_handle_t* handle, const system_metrics_t* metri
     // Actualizar cabecera
     handle->header.total_records++;
     handle->header.valid_records++;
-    handle->header.last_write_time = time(NULL);
+    handle->header.last_write_time = (uint64_t)time(NULL);
 
     // Recalcular CRC de la cabecera
     handle->header.header_crc =
@@ -466,7 +468,7 @@ int storage_read_all_records(storage_handle_t* handle, int (*callback)(const sto
 
     printf("Read %u records (%u valid, %u corrupt)\n", records_read, valid_records, corrupt_records);
 
-    return valid_records;
+    return (int)valid_records;
 }
 
 /**
@@ -539,7 +541,7 @@ int storage_get_stats(storage_stats_t* stats)
         return -1;
     }
 
-    stats->total_files = file_count;
+    stats->total_files = (uint32_t)file_count;
     stats->oldest_record = time(NULL);
     stats->newest_record = 0;
 
@@ -566,17 +568,17 @@ int storage_get_stats(storage_stats_t* stats)
                         struct stat file_stat;
                         if (fstat(handle.fd, &file_stat) == 0)
                         {
-                            stats->total_size += file_stat.st_size;
+                            stats->total_size += (uint64_t)file_stat.st_size;
                         }
 
-                        if (handle.header.created_time < stats->oldest_record)
+                        if ((time_t)handle.header.created_time < stats->oldest_record)
                         {
-                            stats->oldest_record = handle.header.created_time;
+                            stats->oldest_record = (time_t)handle.header.created_time;
                         }
 
-                        if (handle.header.last_write_time > stats->newest_record)
+                        if ((time_t)handle.header.last_write_time > stats->newest_record)
                         {
-                            stats->newest_record = handle.header.last_write_time;
+                            stats->newest_record = (time_t)handle.header.last_write_time;
                         }
                     }
                 }
@@ -602,8 +604,13 @@ void storage_dump_header(const storage_header_t* header)
     printf("Record size: %u bytes\n", header->record_size);
     printf("Total records: %u\n", header->total_records);
     printf("Valid records: %u\n", header->valid_records);
-    printf("Created: %s", ctime((time_t*)&header->created_time));
-    printf("Last write: %s", ctime((time_t*)&header->last_write_time));
+
+    // Evitar warning de alignment usando variable temporal
+    time_t created = (time_t)header->created_time;
+    time_t last_write = (time_t)header->last_write_time;
+    printf("Created: %s", ctime(&created));
+    printf("Last write: %s", ctime(&last_write));
+
     printf("Header CRC: 0x%08X\n", header->header_crc);
     printf("==========================\n\n");
 }
@@ -616,8 +623,8 @@ void storage_dump_record(const storage_record_t* record)
     if (!record)
         return;
 
-    printf("Record: timestamp=%ld, cpu=%.2f%%, mem_used=%lu, load_1m=%.2f\n", record->timestamp, record->cpu_usage,
-           record->memory_used, record->load_1m);
+    printf("Record: timestamp=%ld, cpu=%.2f%%, mem_used=%lu, load_1m=%.2f\n", (long)record->timestamp,
+           record->cpu_usage, record->memory_used, record->load_1m);
 }
 
 /**

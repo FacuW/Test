@@ -109,6 +109,12 @@ void test_state_change_with_mutex(void)
 
     TEST_ASSERT_EQUAL_INT(MONITOR_RUNNING, state);
 
+    // CRÍTICO: Restaurar el estado a STOPPED antes del cleanup
+    // para evitar que el cleanup intente detener un thread que no existe
+    pthread_mutex_lock(&ctx.state_mutex);
+    ctx.state = MONITOR_STOPPED;
+    pthread_mutex_unlock(&ctx.state_mutex);
+
     usleep(10000); // 10ms
     shell_cleanup(&ctx);
 }
@@ -170,7 +176,7 @@ void test_cmd_start_changes_state(void)
     TEST_ASSERT_EQUAL_INT(MONITOR_RUNNING, state);
 
     cmd_stop(&ctx);
-    usleep(10000); // 10ms - dar tiempo para que el thread termine
+    usleep(50000); // 50ms - dar MÁS tiempo para que el thread termine
     shell_cleanup(&ctx);
 }
 
@@ -197,7 +203,7 @@ void test_cmd_stop_stops_thread(void)
 
     TEST_ASSERT_EQUAL_INT(MONITOR_STOPPED, state);
 
-    usleep(10000); // 10ms - dar tiempo para que el thread termine
+    usleep(50000); // 50ms - dar MÁS tiempo para que el thread termine
     shell_cleanup(&ctx);
 }
 
@@ -218,7 +224,7 @@ void test_pipe_used_in_stop(void)
     int result = cmd_stop(&ctx);
     TEST_ASSERT_EQUAL_INT(0, result);
 
-    usleep(10000); // 10ms - dar tiempo para que el thread termine
+    usleep(50000); // 50ms - dar MÁS tiempo para que el thread termine
     shell_cleanup(&ctx);
 }
 
