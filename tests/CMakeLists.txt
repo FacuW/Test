@@ -23,10 +23,15 @@ endif()
 # Buscar prometheus
 find_library(PROM_LIB prom)
 
-# Crear una librería estática con el código fuente para los tests
+# Crear una librería estática con el código fuente completo para los tests
+# NOTA: Solo debe haber UNA declaración de monitoreo_lib
 add_library(monitoreo_lib STATIC
     ${CMAKE_SOURCE_DIR}/src/metrics.c
     ${CMAKE_SOURCE_DIR}/src/prometheus_metrics.c
+    ${CMAKE_SOURCE_DIR}/src/memory_manager.c      
+    ${CMAKE_SOURCE_DIR}/src/storage.c             
+    ${CMAKE_SOURCE_DIR}/src/sandbox.c             
+    ${CMAKE_SOURCE_DIR}/src/shell_tp3_commands.c  
 )
 
 target_include_directories(monitoreo_lib PUBLIC 
@@ -36,6 +41,7 @@ target_include_directories(monitoreo_lib PUBLIC
 
 target_link_libraries(monitoreo_lib 
     cjson::cjson
+    ${CMAKE_DL_LIBS}  # para dlopen/dlsym
 )
 
 if(PROM_LIB)
@@ -123,3 +129,49 @@ if(PROM_LIB)
 endif()
 
 add_test(NAME shell_exec_tests COMMAND test_shell_exec)
+
+# Test de memory manager
+add_executable(test_memory_manager unit/test_memory_manager.c)
+
+target_include_directories(test_memory_manager PRIVATE 
+    ${CMAKE_SOURCE_DIR}/include
+)
+
+target_link_libraries(test_memory_manager 
+    monitoreo_lib 
+    ${UNITY_TARGET}
+    cjson::cjson
+)
+
+add_test(NAME memory_manager_tests COMMAND test_memory_manager)
+
+# Test de storage
+add_executable(test_storage unit/test_storage.c)
+
+target_include_directories(test_storage PRIVATE 
+    ${CMAKE_SOURCE_DIR}/include
+)
+
+target_link_libraries(test_storage 
+    monitoreo_lib 
+    ${UNITY_TARGET}
+    cjson::cjson
+)
+
+add_test(NAME storage_tests COMMAND test_storage)
+
+# Test de sandbox
+add_executable(test_sandbox unit/test_sandbox.c)
+
+target_include_directories(test_sandbox PRIVATE 
+    ${CMAKE_SOURCE_DIR}/include
+)
+
+target_link_libraries(test_sandbox 
+    monitoreo_lib 
+    ${UNITY_TARGET}
+    cjson::cjson
+    ${CMAKE_DL_LIBS}
+)
+
+add_test(NAME sandbox_tests COMMAND test_sandbox)
